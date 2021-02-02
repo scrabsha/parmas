@@ -20,7 +20,7 @@ impl InstructionEncoder {
     /// Panics if there is no room left in the instruction.
     fn add_bit(&mut self, b: bool) {
         assert!(
-            self.bit_idx < 0,
+            self.bit_idx >= 0,
             "Attempt to write too much bits in a single instruction"
         );
 
@@ -67,7 +67,7 @@ pub(crate) struct EncodedInstruction(u16);
 
 impl fmt::Display for EncodedInstruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:x}", self.0)
+        write!(f, "{:x?}", self.0)
     }
 }
 
@@ -90,7 +90,6 @@ impl Encodable for (bool, bool) {
         instruct
     }
 }
-
 
 impl Encodable for (bool, bool, bool) {
     fn encode(self, mut instruct: InstructionEncoder) -> InstructionEncoder {
