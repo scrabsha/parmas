@@ -148,7 +148,7 @@ pub enum Op {
 
     // Branch, section 10.1.6.
     /// B (conditionnal branch).
-    B(Condition, String),
+    B(Condition, Imm8),
 }
 
 impl Op {
