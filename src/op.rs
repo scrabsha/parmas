@@ -270,6 +270,12 @@ impl<T: AddBit> Encodable<T> for &Op {
                 .then((true, false, true, false))
                 .then(*rm)
                 .then(*rdn),
+            
+            Op::Cmn(rn, rm) => instruct
+                .then(DpHeader)
+                .then((true, false, true, true))
+                .then(*rm)
+                .then(*rn),
 
             _ => todo!(),
         }

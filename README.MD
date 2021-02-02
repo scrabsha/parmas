@@ -53,7 +53,7 @@ $ cargo test
 | TST (register) | ✔️ | ✔️ |
 | RSB (immediate) | ✔️ | ✔️ |
 | CMP (register) | ✔️ | ✔️ |
-| CMN (register) | ❌ | ❌ |
+| CMN (register) | ✔️ | ✔️ |
 | ORR (register) | ❌ | ❌ |
 | MUL | ❌ | ❌ |
 | BIC (register) | ❌ | ❌ |
