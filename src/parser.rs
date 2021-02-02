@@ -185,7 +185,7 @@ fn starts_with_comment(input: &str) -> bool {
 ///
 /// Returns an error if input starts with `/*` but contains no other `*/`.
 fn comment_split_idx(input: &str) -> Result<usize> {
-    if input.starts_with("//") {
+    if input.starts_with("//") || input.starts_with('@') {
         Ok(input
             .char_indices()
             .skip_while(|(_, chr)| *chr != '\n')
@@ -859,6 +859,7 @@ mod tests {
     #[test]
     fn comment_split_idx_handles_newlines_correctly() {
         assert_eq!(comment_split_idx("// hello\n world"), Ok(9));
+        assert_eq!(comment_split_idx("@ foo bar\nbaz"), Ok(10));
     }
 
     #[test]
