@@ -162,6 +162,12 @@ impl Encodable for &Op {
                 .then(*rm)
                 .then(*rdn),
 
+            Op::AsrR(rdn, rm) => instruct
+                .then(DpHeader)
+                .then((false, true, false, false))
+                .then(*rm)
+                .then(*rdn),
+
             _ => todo!(),
         }
     }
