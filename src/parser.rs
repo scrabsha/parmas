@@ -559,6 +559,14 @@ fn parse_muls_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an BICS instruction.
+fn parse_bics_args(input: &str) -> ParsingResult<Op> {
+    let ((rdn, rm), tail) = args2(input, register, register)?;
+
+    let op = Op::Bic(rdn, rm);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -587,6 +595,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "cmns" => parse_cmns_args(tail),
         "orrs" => parse_orrs_args(tail),
         "muls" => parse_muls_args(tail),
+        "bics" => parse_bics_args(tail),
         _ => todo!(),
     }?;
 
@@ -779,5 +788,13 @@ mod tests {
         );
 
         assert!(parse_op("muls r4, r1, r2").is_err());
+    }
+
+    #[test]
+    fn parse_bics() {
+        assert_eq!(
+            parse_op("bics r4, r1, r4").unwrap().0,
+            Op::Bic(Register::R4, Register::R1),
+        );
     }
 }

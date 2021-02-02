@@ -56,7 +56,7 @@ $ cargo test
 | CMN (register) | ✔️ | ✔️ |
 | ORR (register) | ✔️ | ✔️ |
 | MUL | ✔️ | ✔️ |
-| BIC (register) | ❌ | ❌ |
+| BIC (register) | ✔️ | ✔️ |
 | MVN (register) | ❌ | ❌ |
 | STR (immediate) | ❌ | ❌ |
 | LDR (immediate) | ❌ | ❌ |
