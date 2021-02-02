@@ -202,11 +202,10 @@ fn lit(input: &str) -> ParsingResult<usize> {
     let tail = crs.as_str();
     let idx = crs
         .find(|(_, chr)| !chr.is_numeric())
-        .map(|(idx, _)| idx)
+        .map(|(idx, _)| idx - 1)
         .unwrap_or_else(|| input.len() - 1);
 
     let (head, tail) = tail.split_at(idx);
-
     let val = head.parse().unwrap();
 
     Ok((val, tail))
