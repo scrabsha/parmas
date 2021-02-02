@@ -228,26 +228,6 @@ impl ResolvedOp {
 /// branching is impossible.
 fn compute_branching_delta(from: usize, to: usize) -> Result<Imm8> {
     let (from, to) = (from as isize, to as isize);
-
-    // Warning: this is not conform to what is stated by the school-provided
-    // specs, which states that the offset should be incremented by 3.
-    //
-    // However, the following program:
-    //
-    //     beq foo
-    //     beq foo
-    //     beq foo
-    //     beq foo
-    // foo:
-    //
-    // Is assembled as:
-    //
-    // d002
-    // d001
-    // d000
-    // d0ff
-    //
-    // Which requires us to always substract 2.
     let delta = to - from - 3;
 
     if delta.abs() > 127 {
