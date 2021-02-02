@@ -59,6 +59,30 @@ where
     Ok(((a, b, c, d, e), tail))
 }
 
+fn args2<'a, A, B, F, G>(input: &'a str, f: F, g: G) -> ParsingResult<(A, B)>
+where
+    A: 'a,
+    B: 'a,
+    F: Fn(&'a str) -> ParsingResult<A>,
+    G: Fn(&'a str) -> ParsingResult<B>,
+{
+    let ((a, _, b), tail) = multiple3(input, f, arg_sep, g)?;
+    Ok(((a, b), tail))
+}
+
+fn args3<'a, A, B, C, F, G, H>(input: &'a str, f: F, g: G, h: H) -> ParsingResult<(A, B, C)>
+where
+    A: 'a,
+    B: 'a,
+    C: 'a,
+    F: Fn(&'a str) -> ParsingResult<A>,
+    G: Fn(&'a str) -> ParsingResult<B>,
+    H: Fn(&'a str) -> ParsingResult<C>,
+{
+    let ((a, _, b, _, c), tail) = multiple5(input, f, arg_sep, g, arg_sep, h)?;
+    Ok(((a, b, c), tail))
+}
+
 fn whitespaces_split_idx(input: &str) -> usize {
     input
         .char_indices()
@@ -188,52 +212,46 @@ fn arg_sep(input: &str) -> ParsingResult<()> {
 }
 
 fn parse_lsls_immediate_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rm, _, imm5), tail) =
-        multiple5(input, register, arg_sep, register, arg_sep, imm5)?;
+    let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
     let op = Op::LslI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 fn parse_lsls_register_args(input: &str) -> ParsingResult<Op> {
-    let ((rdn, _, rm), tail) =
-        multiple3(input, register, arg_sep, register)?;
+    let ((rdn, rm), tail) = args2(input, register, register)?;
 
     let op = Op::LslR(rdn, rm);
     Ok((op, tail))
 }
 
 fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
-    parse_lsls_immediate_args(input)
-        .or_else(|_| parse_lsls_register_args(input))
+    parse_lsls_immediate_args(input).or_else(|_| parse_lsls_register_args(input))
 }
 
 fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rm, _, imm5), tail) =
-        multiple5(input, register, arg_sep, register, arg_sep, imm5)?;
+    let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
     let op = Op::LsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rm, _, imm5), tail) =
-        multiple5(input, register, arg_sep, register, arg_sep, imm5)?;
+    let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
     let op = Op::AsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 fn parse_adds_register_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rn, _, rm), tail) =
-        multiple5(input, register, arg_sep, register, arg_sep, register)?;
+    let ((rd, rn, rm), tail) = args3(input, register, register, register)?;
 
     let op = Op::AddR(rd, rn, rm);
     Ok((op, tail))
 }
 
 fn parse_adds_immediate_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rn, _, rm), tail) = multiple5(input, register, arg_sep, register, arg_sep, imm3)?;
+    let ((rd, rn, rm), tail) = args3(input, register, register, imm3)?;
 
     let op = Op::AddI(rd, rn, rm);
     Ok((op, tail))
@@ -244,16 +262,14 @@ fn parse_adds_args(input: &str) -> ParsingResult<Op> {
 }
 
 fn parse_subs_register_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rn, _, rm), tail) =
-        multiple5(input, register, arg_sep, register, arg_sep, register)?;
+    let ((rd, rn, rm), tail) = args3(input, register, register, register)?;
 
     let op = Op::SubR(rd, rn, rm);
     Ok((op, tail))
 }
 
 fn parse_subs_immediate_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rn, _, imm3), tail) =
-        multiple5(input, register, arg_sep, register, arg_sep, imm3)?;
+    let ((rd, rn, imm3), tail) = args3(input, register, register, imm3)?;
 
     let op = Op::SubI(rd, rn, imm3);
     Ok((op, tail))
@@ -264,21 +280,21 @@ fn parse_subs_args(input: &str) -> ParsingResult<Op> {
 }
 
 fn parse_movs_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, imm8), tail) = multiple3(input, register, arg_sep, imm8)?;
+    let ((rd, imm8), tail) = args2(input, register, imm8)?;
 
     let op = Op::MovI(rd, imm8);
     Ok((op, tail))
 }
 
 fn parse_ands_args(input: &str) -> ParsingResult<Op> {
-    let ((rdn, _, rm), tail) = multiple3(input, register, arg_sep, register)?;
+    let ((rdn, rm), tail) = args2(input, register, register)?;
 
     let op = Op::And(rdn, rm);
     Ok((op, tail))
 }
 
 fn parse_eors_args(input: &str) -> ParsingResult<Op> {
-    let ((rdn, _, rm), tail) = multiple3(input, register, arg_sep, register)?;
+    let ((rdn, rm), tail) = args2(input, register, register)?;
 
     let op = Op::Eor(rdn, rm);
     Ok((op, tail))
@@ -298,7 +314,6 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "movs" => parse_movs_args(tail),
         "ands" => parse_ands_args(tail),
         "eors" => parse_eors_args(tail),
-        "lsls" => parse_lsls_args(tail),
         _ => todo!(),
     }
 }
