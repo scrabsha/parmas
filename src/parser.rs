@@ -1,5 +1,5 @@
 use crate::{
-    op::{Imm5, Imm7, Imm8, Op, Register},
+    op::{Imm3, Imm5, Imm7, Imm8, Op, Register},
     Result,
 };
 
@@ -146,6 +146,13 @@ fn lit(input: &str) -> ParsingResult<usize> {
     Ok((val, tail))
 }
 
+fn imm3(input: &str) -> ParsingResult<Imm3> {
+    match lit(input)? {
+        (v, tail) if v < 8 => Ok((Imm3(v), tail)),
+        _ => Err("Invalid imm3 value"),
+    }
+}
+
 fn imm5(input: &str) -> ParsingResult<Imm5> {
     match lit(input)? {
         (v, tail) if v < 32 => Ok((Imm5(v), tail)),
@@ -204,12 +211,43 @@ fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
-fn parse_adds_args(input: &str) -> ParsingResult<Op> {
+fn parse_adds_register_args(input: &str) -> ParsingResult<Op> {
     let ((rd, _, rn, _, rm), tail) =
         multiple5(input, register, arg_sep, register, arg_sep, register)?;
 
     let op = Op::AddR(rd, rn, rm);
     Ok((op, tail))
+}
+
+fn parse_adds_immediate_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, rn, _, rm), tail) = multiple5(input, register, arg_sep, register, arg_sep, imm3)?;
+
+    let op = Op::AddI(rd, rn, rm);
+    Ok((op, tail))
+}
+
+fn parse_adds_args(input: &str) -> ParsingResult<Op> {
+    parse_adds_register_args(input).or_else(|_| parse_adds_immediate_args(input))
+}
+
+fn parse_subs_register_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, rn, _, rm), tail) =
+        multiple5(input, register, arg_sep, register, arg_sep, register)?;
+
+    let op = Op::SubR(rd, rn, rm);
+    Ok((op, tail))
+}
+
+fn parse_subs_immediate_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, rn, _, imm3), tail) =
+        multiple5(input, register, arg_sep, register, arg_sep, imm3)?;
+
+    let op = Op::SubI(rd, rn, imm3);
+    Ok((op, tail))
+}
+
+fn parse_subs_args(input: &str) -> ParsingResult<Op> {
+    parse_subs_register_args(input).or_else(|_| parse_subs_immediate_args(input))
 }
 
 pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
@@ -222,6 +260,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "lsrs" => parse_lsrs_args(tail),
         "asrs" => parse_asrs_args(tail),
         "adds" => parse_adds_args(tail),
+        "subs" => parse_subs_args(tail),
         _ => todo!(),
     }
 }
@@ -259,6 +298,24 @@ mod tests {
         assert_eq!(
             parse_op("adds r4, r2, r0").unwrap().0,
             Op::AddR(Register::R4, Register::R2, Register::R0),
+        );
+
+        assert_eq!(
+            parse_op("adds r4, r2, #6").unwrap().0,
+            Op::AddI(Register::R4, Register::R2, Imm3(6)),
+        );
+    }
+
+    #[test]
+    fn parse_op_subs_register() {
+        assert_eq!(
+            parse_op("subs r4, r2, r0").unwrap().0,
+            Op::SubR(Register::R4, Register::R2, Register::R0),
+        );
+
+        assert_eq!(
+            parse_op("subs r4, r2, #6").unwrap().0,
+            Op::SubI(Register::R4, Register::R2, Imm3(6)),
         );
     }
 }
