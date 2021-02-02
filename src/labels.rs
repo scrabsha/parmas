@@ -25,7 +25,7 @@ impl<'a> LabelTable<'a> {
     pub(crate) fn add(&mut self, s: &'a str, p: usize) -> Result<()> {
         let already_existing = self.labels.insert(s, p);
 
-        if let Some(_) = already_existing {
+        if already_existing.is_some() {
             Err("Redefinition of symbol")
         } else {
             Ok(())

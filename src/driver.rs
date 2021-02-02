@@ -82,7 +82,7 @@ impl<'a> Assembler<(), ()> {
 
 impl<O> Assembler<(), O> {
     /// Adds an input stream to the assembler.
-    pub(crate) fn with_input<'a, I: Read>(self, input: &'a mut I) -> Assembler<&'a mut I, O> {
+    pub(crate) fn with_input<I: Read>(self, input: &mut I) -> Assembler<&mut I, O> {
         let output = self.output;
         Assembler { input, output }
     }
@@ -90,7 +90,7 @@ impl<O> Assembler<(), O> {
 
 impl<I> Assembler<I, ()> {
     /// Adds an output stream to the assembler.
-    pub(crate) fn with_output<'a, O: Write>(self, output: &'a mut O) -> Assembler<I, &'a mut O> {
+    pub(crate) fn with_output<O: Write>(self, output: &mut O) -> Assembler<I, &mut O> {
         let input = self.input;
         Assembler { input, output }
     }
