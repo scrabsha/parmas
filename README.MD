@@ -54,7 +54,7 @@ $ cargo test
 | RSB (immediate) | ✔️ | ✔️ |
 | CMP (register) | ✔️ | ✔️ |
 | CMN (register) | ✔️ | ✔️ |
-| ORR (register) | ❌ | ❌ |
+| ORR (register) | ✔️ | ✔️ |
 | MUL | ❌ | ❌ |
 | BIC (register) | ❌ | ❌ |
 | MVN (register) | ❌ | ❌ |

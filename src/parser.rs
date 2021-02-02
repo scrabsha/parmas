@@ -539,6 +539,14 @@ fn parse_cmns_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an ORRS instruction.
+fn parse_orrs_args(input: &str) -> ParsingResult<Op> {
+    let ((rdn, rm), tail) = args2(input, register, register)?;
+
+    let op = Op::Orr(rdn, rm);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -565,6 +573,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "rsbs" => parse_rsbs_args(tail),
         "cmps" => parse_cmps_args(tail),
         "cmns" => parse_cmns_args(tail),
+        "orrs" => parse_orrs_args(tail),
         _ => todo!(),
     }?;
 
@@ -738,6 +747,14 @@ mod tests {
         assert_eq!(
             parse_op("cmns r4, r1").unwrap().0,
             Op::Cmn(Register::R4, Register::R1),
+        );
+    }
+
+    #[test]
+    fn parse_orrs() {
+        assert_eq!(
+            parse_op("orrs r4, r1").unwrap().0,
+            Op::Orr(Register::R4, Register::R1),
         );
     }
 }
