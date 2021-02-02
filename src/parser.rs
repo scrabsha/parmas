@@ -111,7 +111,8 @@ fn comment_split_idx(input: &str) -> Result<usize> {
             .map(|(idx, _)| idx)
             .unwrap_or_else(|| input.len()))
     } else if input.starts_with("/*") {
-        input.find("*/")
+        input
+            .find("*/")
             .map(|idx| idx + 2)
             .ok_or("Unclosed multiline comment")
     } else {
@@ -270,18 +271,40 @@ fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
     parse_lsls_immediate_args(input).or_else(|_| parse_lsls_register_args(input))
 }
 
-fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsrs_immediate_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
     let op = Op::LsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
-fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsrs_register_args(input: &str) -> ParsingResult<Op> {
+    let ((rdn, rm), tail) = args2(input, register, register)?;
+
+    let op = Op::LsrR(rdn, rm);
+    Ok((op, tail))
+}
+
+fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
+    parse_lsrs_immediate_args(input).or_else(|_| parse_lsrs_register_args(input))
+}
+
+fn parse_asrs_args_immediate(input: &str) -> ParsingResult<Op> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
     let op = Op::AsrI(rd, rm, imm5);
     Ok((op, tail))
+}
+
+fn parse_asrs_args_register(input: &str) -> ParsingResult<Op> {
+    let ((rdn, rm), tail) = args2(input, register, register)?;
+
+    let op = Op::AsrR(rdn, rm);
+    Ok((op, tail))
+}
+
+fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
+    parse_asrs_args_immediate(input).or_else(|_| parse_asrs_args_register(input))
 }
 
 fn parse_adds_register_args(input: &str) -> ParsingResult<Op> {
@@ -391,18 +414,28 @@ mod tests {
     }
 
     #[test]
-    fn parse_op_lsrs_immediate() {
+    fn parse_op_lsrs() {
         assert_eq!(
             parse_op("lsrs r4, r2, #12").unwrap().0,
             Op::LsrI(Register::R4, Register::R2, Imm5(12)),
         );
+
+        assert_eq!(
+            parse_op("lsrs r4, r2").unwrap().0,
+            Op::LsrR(Register::R4, Register::R2),
+        );
     }
 
     #[test]
-    fn parse_op_asr_immediate() {
+    fn parse_op_asr() {
         assert_eq!(
             parse_op("asrs r4, r2, #12").unwrap().0,
             Op::AsrI(Register::R4, Register::R2, Imm5(12)),
+        );
+
+        assert_eq!(
+            parse_op("asrs r4, r2").unwrap().0,
+            Op::AsrR(Register::R4, Register::R2),
         );
     }
 
