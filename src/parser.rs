@@ -206,9 +206,8 @@ fn whitespaces(mut input: &str) -> ParsingResult<()> {
 ///
 /// This function is guaranteed to always succeed.
 fn whitespaces_opt(input: &str) -> ParsingResult<()> {
-    let v = whitespaces(input)
-        .unwrap_or(((), input));
-    
+    let v = whitespaces(input).unwrap_or(((), input));
+
     Ok(v)
 }
 
@@ -542,7 +541,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
 
     let opcode = opcode.to_lowercase();
 
-    match opcode.as_str() {
+    let (op, tail) = match opcode.as_str() {
         "lsls" => parse_lsls_args(tail),
         "lsrs" => parse_lsrs_args(tail),
         "asrs" => parse_asrs_args(tail),
@@ -558,7 +557,11 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "rsbs" => parse_rsbs_args(tail),
         "cmps" => parse_cmps_args(tail),
         _ => todo!(),
-    }
+    }?;
+
+    let ((), tail) = whitespaces_opt(tail)?;
+
+    Ok((op, tail))
 }
 
 #[cfg(test)]
