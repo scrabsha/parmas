@@ -3,6 +3,7 @@ use std::fs;
 
 pub mod op;
 pub mod parser;
+mod encoder;
 
 pub type Result<T> = std::result::Result<T, &'static str>;
 
