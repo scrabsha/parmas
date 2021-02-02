@@ -71,6 +71,8 @@ fn register(input: &str) -> Result<(Register, &str)> {
 fn lit(input: &str) -> Result<(usize, &str)> {
     let mut crs = input.char_indices();
 
+    dbg!(crs.as_str());
+
     match crs.next() {
         Some((_, '#')) => {}
         None => return Err("Expected register name, found EOF"),
@@ -127,14 +129,30 @@ fn comma_and_maybe_whitespaces(input: &str) -> Result<&str> {
 fn parse_lsls_args(input: &str) -> Result<(Op, &str)> {
     let (rd, tail) = register(input)?;
     let tail = comma_and_maybe_whitespaces(tail)?;
+
     let (rm, tail) = register(tail)?;
     let tail = comma_and_maybe_whitespaces(tail)?;
+
     let (imm5, tail) = imm5(tail)?;
+
     let op = Op::LslI(rd, rm, imm5);
     Ok((op, tail))
 }
 
-fn parse_op(input: &str) -> Result<(Op, &str)> {
+fn parse_lsrs_args(input: &str) -> Result<(Op, &str)> {
+    let (rd, tail) = register(input)?;
+    let tail = comma_and_maybe_whitespaces(tail)?;
+
+    let (rm, tail) = register(tail)?;
+    let tail = comma_and_maybe_whitespaces(tail)?;
+
+    let (imm5, tail) = imm5(tail)?;
+
+    let op = Op::LsrI(rd, rm, imm5);
+    Ok((op, tail))
+}
+
+pub(crate) fn parse_op(input: &str) -> Result<(Op, &str)> {
     let (opcode, tail) = symbol(input)?;
     let tail = whitespaces(tail)?;
 
@@ -142,6 +160,7 @@ fn parse_op(input: &str) -> Result<(Op, &str)> {
 
     match opcode.as_str() {
         "lsls" => parse_lsls_args(tail),
+        "lsrs" => parse_lsrs_args(tail),
         _ => todo!(),
     }
 }
@@ -155,6 +174,14 @@ mod tests {
         assert_eq!(
             parse_op("lsls r4, r2, #12").unwrap().0,
             Op::LslI(Register::R4, Register::R2, Imm5(12)),
+        );
+    }
+
+    #[test]
+    fn parse_op_lsrs_immediate() {
+        assert_eq!(
+            parse_op("lsrs r4, r2, #12").unwrap().0,
+            Op::LsrI(Register::R4, Register::R2, Imm5(12)),
         );
     }
 }
