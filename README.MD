@@ -58,7 +58,7 @@ $ cargo test
 | MUL | ✔️ | ✔️ |
 | BIC (register) | ✔️ | ✔️ |
 | MVN (register) | ✔️ | ✔️ |
-| STR (immediate) | ❌ | ❌ |
+| STR (immediate) | ✔️ | ✔️ |
 | LDR (immediate) | ❌ | ❌ |
 | ADD (SP plus immediate) | ❌ | ❌ |
 | SUB (SP minus immediate) | ❌ | ❌ |

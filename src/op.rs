@@ -4,8 +4,8 @@
 //! also implements the encoding of all these types.
 
 use crate::encoder::{
-    AddBit, Encodable, EncodedInstruction, InstructionEncoder, Succ10, Succ2, Succ3, Succ5, Succ6,
-    Succ8,
+    AddBit, Encodable, EncodedInstruction, InstructionEncoder, Succ10, Succ2, Succ3, Succ4, Succ5,
+    Succ6, Succ8,
 };
 
 // The shift, add, sub, mov opcodes header.
@@ -30,11 +30,6 @@ impl<T: AddBit> Encodable<T> for SasmHeader {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct DpHeader;
 
-// Next headers:
-//   - load/store: A5.2.4 (page 133),
-//   - miscellaneous: A.5.2.5 (page 134),
-//   - conditional branch: A.5.2.6 (page 136).
-
 impl<T: AddBit> Encodable<T> for DpHeader {
     type Output = Succ6<T>;
 
@@ -48,6 +43,24 @@ impl<T: AddBit> Encodable<T> for DpHeader {
             .then(false)
     }
 }
+
+/// Represents the Load, Store instruction header.
+///
+/// See section A5.2.4 (page 133) of the ARMv7 Architecture Manual.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct LsHeader;
+
+impl<T: AddBit> Encodable<T> for LsHeader {
+    type Output = Succ4<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
+        instruct.then(true).then(false).then(false).then(true)
+    }
+}
+
+// Next headers:
+//   - miscellaneous: A.5.2.5 (page 134),
+//   - conditional branch: A.5.2.6 (page 136).
 
 /// Represents a specific ARM-Cortex M0 operation.
 ///
@@ -300,6 +313,8 @@ impl<T: AddBit> Encodable<T> for &Op {
                 .then((true, true, true, true))
                 .then(*rm)
                 .then(*rd),
+
+            Op::Str(rt, imm8) => instruct.then(LsHeader).then(false).then(*rt).then(*imm8),
 
             _ => todo!(),
         }

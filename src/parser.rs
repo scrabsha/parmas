@@ -354,6 +354,62 @@ fn arg_sep(input: &str) -> ParsingResult<()> {
     Ok(((), tail))
 }
 
+/// Parses the `SP` register.
+///
+/// Returns an error if the next symbol is not the `SP` register.
+fn sp(input: &str) -> ParsingResult<()> {
+    let (i, tail) = symbol(input)?;
+
+    if i.to_lowercase() == "sp" {
+        Ok(((), tail))
+    } else {
+        Err("Expected SP register")
+    }
+}
+
+/// Parses a left bracket (`[`).
+fn left_bracket(input: &str) -> ParsingResult<()> {
+    if input.starts_with('[') {
+        let (_, tail) = input.split_at(1);
+        Ok(((), tail))
+    } else {
+        Err("Expected `[`")
+    }
+}
+
+/// Parses a right bracket (`]`).
+fn right_bracket(input: &str) -> ParsingResult<()> {
+    if input.starts_with(']') {
+        let (_, tail) = input.split_at(1);
+        Ok(((), tail))
+    } else {
+        Err("Expected `]`")
+    }
+}
+
+/// Parses the inner part of the second argument of STR and LDR instructions.
+///
+/// The inner part corresonds to what is between `[` and `]`.
+fn load_store_second_argument_inner(input: &str) -> ParsingResult<Imm8> {
+    multiple5(input, whitespaces_opt, sp, arg_sep, imm8, whitespaces_opt)
+        .map(|((_, _, _, imm8, _), tail)| (imm8, tail))
+        .or_else(|_| {
+            multiple3(input, whitespaces_opt, sp, whitespaces_opt)
+                .map(|((_, _, _), tail)| (Imm8(0), tail))
+        })
+}
+
+/// Parses the second argument of the STR and LDR instructions.
+fn load_store_second_argument(input: &str) -> ParsingResult<Imm8> {
+    multiple3(
+        input,
+        left_bracket,
+        load_store_second_argument_inner,
+        right_bracket,
+    )
+    .map(|((_, imm8, _), tail)| (imm8, tail))
+}
+
 /// Parses the arguments following an LSLS (immediate) instruction.
 fn parse_lsls_immediate_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
@@ -575,6 +631,14 @@ fn parse_mvns_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an STR instruction.
+fn parse_str_args(input: &str) -> ParsingResult<Op> {
+    let ((rt, imm8), tail) = args2(input, register, load_store_second_argument)?;
+
+    let op = Op::Str(rt, imm8);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -605,6 +669,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "muls" => parse_muls_args(tail),
         "bics" => parse_bics_args(tail),
         "mvns" => parse_mvns_args(tail),
+        "str" => parse_str_args(tail),
         _ => todo!(),
     }?;
 
@@ -812,6 +877,19 @@ mod tests {
         assert_eq!(
             parse_op("mvns r4, r1, r4").unwrap().0,
             Op::Mvn(Register::R4, Register::R1),
+        );
+    }
+
+    #[test]
+    fn parse_str() {
+        assert_eq!(
+            parse_op("str r4, [sp, #101]").unwrap().0,
+            Op::Str(Register::R4, Imm8(101)),
+        );
+
+        assert_eq!(
+            parse_op("str r4, [sp]").unwrap().0,
+            Op::Str(Register::R4, Imm8(0)),
         );
     }
 }
