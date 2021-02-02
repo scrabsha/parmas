@@ -63,7 +63,7 @@ fn output_file() -> Option<Result<File>> {
     let output_file_path = env::args_os()
         .nth(1)
         .map(PathBuf::from)?
-        .with_extension("raw");
+        .with_extension("txt");
 
     let output = OpenOptions::new()
         .create(true)
