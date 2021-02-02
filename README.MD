@@ -2,7 +2,7 @@
 
 PARM-Assembler.
 
-## Compiling
+## Compiling and installing parmas
 
 First, install the `rustup` tool for your operating system (see
 [rustup.rs][rustup] for detailled instructions). Then, you need to install the
@@ -19,7 +19,24 @@ $ git clone https://github.com/leopourcelot/parmas
 $ cargo build --release
 ```
 
-The executable is located in the `target` subdirectory.
+The executable is located in the `target` subdirectory. On Linux, it can be
+installed with :
+
+```bash
+# install target/release/parmas /usr/bin/parmas
+```
+
+## Running parmas
+
+To run `parmas` on an assembly file, issue:
+
+```bash
+parmas path/to/file.s
+```
+
+The output file will be created in the same directory, with the `raw` file
+extension. If no input file is provided, then the standard input will be
+processed, and the result will be printed to the standard output.
 
 ## Testing
 
