@@ -363,6 +363,26 @@ fn imm8(input: &str) -> ParsingResult<Imm8> {
     }
 }
 
+/// Parses a stack adress from an input string.
+///
+/// A stack adress is an imm8 that is a multiple of 4, in which case, it is
+/// returned divided by 4.
+///
+/// Note: while this is not true for regular arm processors, this is actually
+/// needed for our 8-bit one.
+///
+/// To further increase the derpiness, if the imm8 is not a multiple of 4, then
+/// it still gets divided, and an error is printed on the stack.
+fn stack_adress(input: &str) -> ParsingResult<Imm8> {
+    let (Imm8(i), tail) = imm8(input)?;
+
+    if i & 0b11 != 0 {
+        eprintln!("Invalid stack adress: should be multiple of 4");
+    }
+
+    Ok((Imm8(i / 4), tail))
+}
+
 /// Parses a comma `,`.
 fn comma(input: &str) -> ParsingResult<()> {
     if input.starts_with(',') {
@@ -491,7 +511,7 @@ fn sp_arg_opt(input: &str) -> ParsingResult<()> {
 ///
 /// The inner part corresonds to what is between `[` and `]`.
 fn load_store_second_argument_inner(input: &str) -> ParsingResult<Imm8> {
-    multiple5(input, whitespaces_opt, sp, arg_sep, imm8, whitespaces_opt)
+    multiple5(input, whitespaces_opt, sp, arg_sep, stack_adress, whitespaces_opt)
         .map(|((_, _, _, imm8, _), tail)| (imm8, tail))
         .or_else(|_| {
             multiple3(input, whitespaces_opt, sp, whitespaces_opt)
@@ -788,7 +808,8 @@ fn directive_split_idx(input: &str) -> Result<usize> {
     }
 
     // We discard input until the next \n.
-    let split_idx = tail.char_indices()
+    let split_idx = tail
+        .char_indices()
         .find(|(_, c)| *c == '\n')
         .map(|(idx, _)| idx)
         .unwrap_or_else(|| tail.len());
@@ -1108,8 +1129,8 @@ mod tests {
     #[test]
     fn parse_str() {
         assert_eq!(
-            op("str r4, [sp, #101]").unwrap().0,
-            RawOp::Str(Register::R4, Imm8(101)),
+            op("str r4, [sp, #168]").unwrap().0,
+            RawOp::Str(Register::R4, Imm8(42)),
         );
 
         assert_eq!(
@@ -1121,8 +1142,8 @@ mod tests {
     #[test]
     fn parse_ldr() {
         assert_eq!(
-            op("ldr r4, [sp, #101]").unwrap().0,
-            RawOp::Ldr(Register::R4, Imm8(101)),
+            op("ldr r4, [sp, #168]").unwrap().0,
+            RawOp::Ldr(Register::R4, Imm8(42)),
         );
 
         assert_eq!(

@@ -177,7 +177,7 @@ mod tests {
         ";
 
         let output = Assembler::run_test(input);
-        let expected_output = "v2.0 raw\nb08c 2000 9008 2101 9104 9908 9a04 1889 9100 b00c ";
+        let expected_output = "v2.0 raw\nb08c 2000 9002 2101 9101 9902 9a01 1889 9100 b00c ";
 
         assert_eq!(output.unwrap(), expected_output);
     }
@@ -327,11 +327,11 @@ mod tests {
         ";
 
         let output = Assembler::run_test(input).unwrap();
-        let expected_outptut = "v2.0 raw\nb098 2000 9014 9010 900c 2001 9008 \
-        2002 9004 2003 9000 defe 9820 990c 4288 d104 defe 9818 991c 1840 9028 \
-        defe 9820 9908 4288 d104 defe 9818 991c 1a40 9028 defe 9820 9904 4288 \
-        d104 defe 9818 991c 4341 9128 defe 9820 9900 4288 d104 defe 9818 991c \
-        4088 9028 defe ded5 0000 ";
+        let expected_outptut = "v2.0 raw\nb098 2000 9005 9004 9003 2001 9002 \
+        2002 9001 2003 9000 defe 9808 9903 4288 d104 defe 9806 9907 1840 900a \
+        defe 9808 9902 4288 d104 defe 9806 9907 1a40 900a defe 9808 9901 4288 \
+        d104 defe 9806 9907 4341 910a defe 9808 9900 4288 d104 defe 9806 9907 \
+        4088 900a defe ded5 0000 ";
         assert_eq!(output, expected_outptut);
     }
 }
