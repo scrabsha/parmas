@@ -180,6 +180,18 @@ impl Encodable for &Op {
                 .then(*rm)
                 .then(*rdn),
 
+            Op::RorR(rdn, rm) => instruct
+                .then(DpHeader)
+                .then((false, true, true, true))
+                .then(*rm)
+                .then(*rdn),
+            
+            Op::Tst(rdn, rm) => instruct
+                .then(DpHeader)
+                .then((true, false, false, false))
+                .then(*rm)
+                .then(*rdn),
+
             _ => todo!(),
         }
     }

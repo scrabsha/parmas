@@ -49,8 +49,8 @@ $ cargo test
 | ASR (register) | ✔️ | ✔️ |
 | ADC (register) | ✔️ | ✔️ |
 | SBC (register) | ✔️ | ✔️ |
-| ROR (register) | ❌ | ❌ |
-| TST (register) | ❌ | ❌ |
+| ROR (register) | ✔️ | ✔️ |
+| TST (register) | ✔️ | ✔️ |
 | RSB (immediate) | ❌ | ❌ |
 | CMP (register) | ❌ | ❌ |
 | CMN (register) | ❌ | ❌ |
