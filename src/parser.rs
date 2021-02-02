@@ -770,7 +770,8 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "add" => parse_add_args(tail),
         "sub" => parse_sub_args(tail),
         branch if branch.starts_with('b') => parse_b_args(branch, tail),
-        _ => todo!(),
+
+        _ => Err("Unexpected instruction"),
     }?;
 
     let ((), tail) = whitespaces_opt(tail)?;
