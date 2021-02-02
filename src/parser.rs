@@ -868,7 +868,7 @@ fn op(input: &str) -> ParsingResult<RawOp> {
         "adcs" => parse_adcs_args(tail),
         "sbcs" => parse_sbcs_args(tail),
         "rors" => parse_rors_args(tail),
-        "tsts" => parse_tsts_args(tail),
+        "tst" => parse_tsts_args(tail),
         "rsbs" => parse_rsbs_args(tail),
         "cmp" => parse_cmps_args(tail),
         "cmns" => parse_cmns_args(tail),
@@ -1042,7 +1042,7 @@ mod tests {
     #[test]
     fn parse_tsts() {
         assert_eq!(
-            op("tsts r4, r1").unwrap().0,
+            op("tst r4, r1").unwrap().0,
             RawOp::Tst(Register::R4, Register::R1),
         );
     }
