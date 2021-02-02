@@ -1,5 +1,31 @@
 use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder};
 
+// The shift, add, sub, mov opcodes header, section 10.1.1.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct SasmHeader;
+
+impl Encodable for SasmHeader {
+    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+        instruct.then(false).then(false)
+    }
+}
+
+// The data processing header, section 10.1.2.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct DpHeader;
+
+impl Encodable for DpHeader {
+    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+        instruct
+            .then(false)
+            .then(true)
+            .then(false)
+            .then(false)
+            .then(false)
+            .then(false)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Op {
     // Shift, add, sub, mov, section 10.1.1.
@@ -54,84 +80,84 @@ impl Encodable for &Op {
     fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
         match self {
             Op::LslI(rd, rm, imm5) => instruct
+                .then(SasmHeader)
                 .then((false, false, false))
-                .then((false, false))
                 .then(*rd)
                 .then(*rm)
                 .then(*imm5),
 
             Op::LsrI(rd, rm, imm5) => instruct
-                .then((false, false, false))
-                .then((false, true))
+                .then(SasmHeader)
+                .then((false, false, true))
                 .then(*imm5)
                 .then(*rm)
                 .then(*rd),
 
             Op::AsrI(rd, rm, imm5) => instruct
-                .then((false, false, false))
-                .then((true, false))
+                .then(SasmHeader)
+                .then((false, true, false))
                 .then(*imm5)
                 .then(*rm)
                 .then(*rd),
 
             Op::AddR(rd, rn, rm) => instruct
-                .then((false, false, false))
-                .then((true, true))
+                .then(SasmHeader)
+                .then((false, true, true))
                 .then((false, false))
                 .then(*rm)
                 .then(*rn)
                 .then(*rd),
 
             Op::SubR(rd, rn, rm) => instruct
-                .then((false, false, false))
-                .then((true, true))
+                .then(SasmHeader)
+                .then((false, true, true))
                 .then((false, true))
                 .then(*rm)
                 .then(*rn)
                 .then(*rd),
 
             Op::AddI(rd, rn, imm3) => instruct
-                .then((false, false, false))
-                .then((true, true))
+                .then(SasmHeader)
+                .then((false, true, true))
                 .then((true, false))
                 .then(*imm3)
                 .then(*rn)
                 .then(*rd),
 
             Op::SubI(rd, rn, imm3) => instruct
-                .then((false, false, false))
-                .then((true, true))
+                .then(SasmHeader)
+                .then((false, true, true))
                 .then((true, true))
                 .then(*imm3)
                 .then(*rn)
                 .then(*rd),
 
             Op::MovI(rd, imm8) => instruct
-                .then((false, false, true))
-                .then((false, false))
+                .then(SasmHeader)
+                .then((true, false, false))
                 .then(*rd)
                 .then(*imm8),
 
             Op::And(rdn, rm) => instruct
-                .then((false, true, false, false, false, false))
+                .then(DpHeader)
                 .then((false, false, false, false))
                 .then(*rm)
                 .then(*rdn),
 
             Op::Eor(rdn, rm) => instruct
-                .then((false, true, false, false, false, false))
+                .then(DpHeader)
                 .then((false, false, false, true))
                 .then(*rm)
                 .then(*rdn),
 
             Op::LslR(rdn, rm) => instruct
-                .then((false, true, false, false, false, false))
+                .then(DpHeader)
                 .then((false, false, true, false))
                 .then(*rm)
                 .then(*rdn),
 
             Op::LsrR(rdn, rm) => instruct
-                .then((false, true, false, false, false, false))
+                .then(DpHeader)
                 .then((false, false, true, false))
                 .then(*rm)
                 .then(*rdn),
