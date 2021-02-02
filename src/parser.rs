@@ -693,7 +693,11 @@ fn parse_tsts_args(input: &str) -> ParsingResult<RawOp> {
 
 /// Parses the arguments following an RSBS instruction.
 fn parse_rsbs_args(input: &str) -> ParsingResult<RawOp> {
-    let ((rdn, rm), tail) = args2(input, register, register)?;
+    let ((rdn, rm, imm), tail) = args3(input, register, register, imm8)?;
+
+    if imm.0 != 0 {
+        return Err("Incorrect immediate value");
+    }
 
     let op = RawOp::Rsb(rdn, rm);
     Ok((op, tail))
@@ -1071,7 +1075,7 @@ mod tests {
     #[test]
     fn parse_rsbs() {
         assert_eq!(
-            op("rsbs r4, r1").unwrap().0,
+            op("rsbs r4, r1, #0").unwrap().0,
             RawOp::Rsb(Register::R4, Register::R1),
         );
     }
