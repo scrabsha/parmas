@@ -2,6 +2,15 @@
 
 PARM-Assembler.
 
+## Disclaimer
+
+This project was created for the Computer Architecture class at Polytech Nice
+Sophia. The goal was to create an assembler for a subset of the ARM-Cortex-M0
+microprocessor (see [the project documentation][miaous-repo]).
+
+I will not maintain this repository anymore. Feel free to study and borrow
+anything you find interesting.
+
 ## Compiling and installing parmas
 
 First, install the `rustup` tool for your operating system (see
@@ -81,4 +90,5 @@ cargo test
 | SUB (SP minus immediate) | ✔️ | ✔️ |
 | B (conditional branche) | ✔️ | ✔️ |
 
+[miaous-repo]: https://github.com/MIAOU-Polytech/SI3_PEP_Project
 [rustup]: https://rustup.rs
