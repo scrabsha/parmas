@@ -1,11 +1,13 @@
-use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder};
+use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder, Succ2, Succ3, Succ5, Succ6, Succ8, Succ10};
 
 // The shift, add, sub, mov opcodes header, section 10.1.1.
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct SasmHeader;
 
-impl Encodable for SasmHeader {
-    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+impl<T> Encodable<T> for SasmHeader {
+    type Output = Succ2<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         instruct.then(false).then(false)
     }
 }
@@ -14,8 +16,10 @@ impl Encodable for SasmHeader {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct DpHeader;
 
-impl Encodable for DpHeader {
-    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+impl<T> Encodable<T> for DpHeader {
+    type Output = Succ6<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         instruct
             .then(false)
             .then(true)
@@ -76,8 +80,10 @@ impl Op {
     }
 }
 
-impl Encodable for &Op {
-    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+impl<T> Encodable<T> for &Op {
+    type Output = Succ10<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         match self {
             Op::LslI(rd, rm, imm5) => instruct
                 .then(SasmHeader)
@@ -221,8 +227,10 @@ pub enum Register {
     R7,
 }
 
-impl Encodable for Register {
-    fn encode(self, instr: InstructionEncoder) -> InstructionEncoder {
+impl<T> Encodable<T> for Register {
+    type Output = Succ3<T>;
+
+    fn encode(self, instr: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         use Register::*;
         let bits = match self {
             R0 => (false, false, false),
@@ -243,8 +251,10 @@ impl Encodable for Register {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm5(pub usize);
 
-impl Encodable for Imm5 {
-    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+impl<T> Encodable<T> for Imm5 {
+    type Output = Succ5<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         let v = self.0;
         let bits = (
             v & 0b10000 != 0,
@@ -262,8 +272,10 @@ impl Encodable for Imm5 {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm8(pub usize);
 
-impl Encodable for Imm8 {
-    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+impl<T> Encodable<T> for Imm8 {
+    type Output = Succ8<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         let v = self.0;
         let (hi, lo) = (
             (
@@ -292,8 +304,10 @@ pub struct Imm7(pub usize);
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm3(pub usize);
 
-impl Encodable for Imm3 {
-    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+impl<T> Encodable<T> for Imm3 {
+    type Output = Succ3<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         let v = self.0;
         let bits = (v & 0b100 != 0, v & 0b010 != 0, v & 0b001 != 0);
 
