@@ -250,6 +250,13 @@ fn parse_subs_args(input: &str) -> ParsingResult<Op> {
     parse_subs_register_args(input).or_else(|_| parse_subs_immediate_args(input))
 }
 
+fn parse_movs_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, imm8), tail) = multiple3(input, register, arg_sep, imm8)?;
+
+    let op = Op::MovI(rd, imm8);
+    Ok((op, tail))
+}
+
 pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
     let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
 
@@ -261,6 +268,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "asrs" => parse_asrs_args(tail),
         "adds" => parse_adds_args(tail),
         "subs" => parse_subs_args(tail),
+        "movs" => parse_movs_args(tail),
         _ => todo!(),
     }
 }
@@ -316,6 +324,14 @@ mod tests {
         assert_eq!(
             parse_op("subs r4, r2, #6").unwrap().0,
             Op::SubI(Register::R4, Register::R2, Imm3(6)),
+        );
+    }
+
+    #[test]
+    fn parse_movs() {
+        assert_eq!(
+            parse_op("movs r3, #99").unwrap().0,
+            Op::MovI(Register::R3, Imm8(99)),
         );
     }
 }
