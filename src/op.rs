@@ -168,6 +168,8 @@ pub(crate) enum Op<T> {
     // Branch, section 10.1.6.
     /// B (conditionnal branch).
     B(Condition, T),
+
+    Noop,
 }
 
 impl<'a> RawOp<'a> {
@@ -207,6 +209,7 @@ impl<'a> RawOp<'a> {
                 let delta = compute_branching_delta(from, to)?;
                 Op::B(a, delta)
             }
+            Op::Noop => Op::Noop,
         };
 
         Ok(translated)
@@ -435,6 +438,12 @@ impl<'a, T: AddBit> Encodable<T> for &'a ResolvedOp {
                 .then(*imm7),
 
             Op::B(cond, imm8) => instruct.then(BHeader).then(*cond).then(*imm8),
+
+            Op::Noop => instruct
+                .then((false, false, false, false))
+                .then((false, false, false, false))
+                .then((false, false, false, false))
+                .then((false, false, false, false)),
         }
     }
 }

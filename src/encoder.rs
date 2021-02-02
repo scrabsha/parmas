@@ -160,7 +160,7 @@ pub(crate) struct EncodedInstruction(pub(crate) u16);
 
 impl fmt::Display for EncodedInstruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:x?}", self.0)
+        write!(f, "{:04x?}", self.0)
     }
 }
 

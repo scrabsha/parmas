@@ -774,8 +774,47 @@ fn parse_b_args<'a>(opcode: &str, tail: &'a str) -> ParsingResult<'a, RawOp<'a>>
     Ok((op, tail))
 }
 
+/// Parses an assembler directive.
+///
+/// This is not returned for now, as it is not supported.
+fn directive_split_idx(input: &str) -> Result<usize> {
+    if !input.starts_with('.') {
+        return Err("Directive starts with `.`");
+    }
+
+    let (name, tail) = label_identifier(input)?;
+    if tail.starts_with(':') {
+        return Err("Expected directive, found label");
+    }
+
+    // We discard input until the next \n.
+    let split_idx = tail.char_indices()
+        .find(|(_, c)| *c == '\n')
+        .map(|(idx, _)| idx)
+        .unwrap_or_else(|| tail.len());
+
+    let bits_eaten = split_idx + name.len();
+    Ok(bits_eaten)
+}
+
+/// Parses a collection of directives.
+fn directives(input: &str) -> Result<&str> {
+    let ((), mut tail) = whitespaces_opt(input)?;
+    while let Ok(dsi) = directive_split_idx(tail) {
+        tail = tail.split_at(dsi).1;
+        tail = whitespaces_opt(tail)?.1;
+    }
+    Ok(tail)
+}
+
 /// Parses a label from an input string.
 fn label(input: &str) -> Option<(&str, &str)> {
+    let mut input = input;
+
+    if let Ok(directive_idx) = directive_split_idx(input) {
+        input = input.split_at(directive_idx).1;
+    }
+
     multiple5(
         input,
         whitespaces_opt,
@@ -807,8 +846,14 @@ fn labels(input: &str) -> (Vec<&str>, &str) {
 /// instruction name is recognized and the corresponding function is then
 /// called.
 fn op(input: &str) -> ParsingResult<RawOp> {
-    let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
+    let ((), input) = whitespaces_opt(input)?;
+    let input = directives(input)?;
 
+    if input.is_empty() {
+        return Ok((RawOp::Noop, ""));
+    }
+
+    let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
     let opcode = opcode.to_lowercase();
 
     let (op, tail) = match opcode.as_str() {
@@ -841,14 +886,19 @@ fn op(input: &str) -> ParsingResult<RawOp> {
     }?;
 
     let ((), tail) = whitespaces_opt(tail)?;
-
+    let tail = directives(tail)?;
+    let tail = whitespaces_opt(tail)?.1;
     Ok((op, tail))
 }
 
 pub(crate) fn parse_op_and_labels(input: &str) -> ParsingResult<(Vec<&str>, RawOp)> {
+    let input = directives(input)?;
+    let input = whitespaces_opt(input)?.1;
     let (labels, tail) = labels(input);
-    let (op, tail) = op(tail)?;
+    let tail = directives(tail)?;
+    let tail = whitespaces_opt(tail)?.1;
 
+    let (op, tail) = op(tail)?;
     Ok(((labels, op), tail))
 }
 
@@ -1176,7 +1226,7 @@ mod tests {
 
     #[test]
     fn labels_parses_multiple_labels() {
-        let (ls, tail) = labels("foo: bar: .baz :qux: tail");
+        let (ls, tail) = labels("foo: bar: .baz: qux: tail");
         assert_eq!(ls, ["foo", "bar", ".baz", "qux"]);
         assert_eq!(tail, "tail");
 
