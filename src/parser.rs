@@ -37,7 +37,7 @@ where
 ///
 /// An error is returned if either `f`, `g` or `h` returned an error.
 /// Otherwise, the three results are returned.
-fn multiple3<'a, A, B, C, F, G, H>(input: &'a str, f: F, g: G, h: H) -> ParsingResult<(A, B, C)>
+fn multiple3<'a, A, B, C, F, G, H>(input: &'a str, fa: F, fb: G, fc: H) -> ParsingResult<(A, B, C)>
 where
     A: 'a,
     B: 'a,
@@ -46,10 +46,10 @@ where
     G: Fn(&'a str) -> ParsingResult<B>,
     H: Fn(&'a str) -> ParsingResult<C>,
 {
-    let ((a, b), tail) = multiple2(input, f, g)?;
-    let (c, tail) = h(tail)?;
+    let ((va, vb), tail) = multiple2(input, fa, fb)?;
+    let (vc, tail) = fc(tail)?;
 
-    Ok(((a, b, c), tail))
+    Ok(((va, vb, vc), tail))
 }
 
 /// Combines five parsing functions.
@@ -58,10 +58,10 @@ where
 /// Otherwise, the five results are returned.
 fn multiple4<'a, A, B, C, D, F, G, H, I>(
     input: &'a str,
-    f: F,
-    g: G,
-    h: H,
-    i: I,
+    f1: F,
+    f2: G,
+    f3: H,
+    f4: I,
 ) -> ParsingResult<(A, B, C, D)>
 where
     A: 'a,
@@ -73,10 +73,10 @@ where
     H: Fn(&'a str) -> ParsingResult<C>,
     I: Fn(&'a str) -> ParsingResult<D>,
 {
-    let ((a, b), tail) = multiple2(input, f, g)?;
-    let ((c, d), tail) = multiple2(tail, h, i)?;
+    let ((v1, v2), tail) = multiple2(input, f1, f2)?;
+    let ((v3, v4), tail) = multiple2(tail, f3, f4)?;
 
-    Ok(((a, b, c, d), tail))
+    Ok(((v1, v2, v3, v4), tail))
 }
 
 /// Combines five parsing functions.
@@ -85,11 +85,11 @@ where
 /// Otherwise, the five results are returned.
 fn multiple5<'a, A, B, C, D, E, F, G, H, I, J>(
     input: &'a str,
-    f: F,
-    g: G,
-    h: H,
-    i: I,
-    j: J,
+    f1: F,
+    f2: G,
+    f3: H,
+    f4: I,
+    f5: J,
 ) -> ParsingResult<(A, B, C, D, E)>
 where
     A: 'a,
@@ -103,10 +103,10 @@ where
     I: Fn(&'a str) -> ParsingResult<D>,
     J: Fn(&'a str) -> ParsingResult<E>,
 {
-    let ((a, b, c), tail) = multiple3(input, f, g, h)?;
-    let ((d, e), tail) = multiple2(tail, i, j)?;
+    let ((v1, v2, v3), tail) = multiple3(input, f1, f2, f3)?;
+    let ((v4, v5), tail) = multiple2(tail, f4, f5)?;
 
-    Ok(((a, b, c, d, e), tail))
+    Ok(((v1, v2, v3, v4, v5), tail))
 }
 
 /// Parses two instruction arguments.
@@ -128,7 +128,7 @@ where
 ///
 /// Instruction arguments are separated by one comma and zero or more
 /// whitespaces.
-fn args3<'a, A, B, C, F, G, H>(input: &'a str, f: F, g: G, h: H) -> ParsingResult<(A, B, C)>
+fn args3<'a, A, B, C, F, G, H>(input: &'a str, f1: F, f2: G, f3: H) -> ParsingResult<(A, B, C)>
 where
     A: 'a,
     B: 'a,
@@ -137,8 +137,8 @@ where
     G: Fn(&'a str) -> ParsingResult<B>,
     H: Fn(&'a str) -> ParsingResult<C>,
 {
-    let ((a, _, b, _, c), tail) = multiple5(input, f, arg_sep, g, arg_sep, h)?;
-    Ok(((a, b, c), tail))
+    let ((v1, _, v2, _, v3), tail) = multiple5(input, f1, arg_sep, f2, arg_sep, f3)?;
+    Ok(((v1, v2, v3), tail))
 }
 
 /// Returns the byte-index of the first non-whitespace of a string slice.
@@ -221,7 +221,7 @@ fn whitespaces(mut input: &str) -> ParsingResult<()> {
     }
 
     if eaten_bytes == 0 {
-        return Err("Expected whitespaces");
+        Err("Expected whitespaces")
     } else {
         Ok(((), input))
     }

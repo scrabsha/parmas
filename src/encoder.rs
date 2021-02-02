@@ -217,13 +217,13 @@ impl<T: AddBit> Encodable<T> for (bool, bool, bool, bool, bool) {
     type Output = Succ5<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
-        let (a, b, c, d, e) = self;
+        let (b1, b2, b3, b4, b5) = self;
 
         instruct
-            .add_bit(a)
-            .add_bit(b)
-            .add_bit(c)
-            .add_bit(d)
-            .add_bit(e)
+            .add_bit(b1)
+            .add_bit(b2)
+            .add_bit(b3)
+            .add_bit(b4)
+            .add_bit(b5)
     }
 }
