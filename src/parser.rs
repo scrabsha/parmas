@@ -7,7 +7,7 @@
 //! version of `Result`, which holds the parsed data and the remaining input.
 
 use crate::{
-    op::{Imm3, Imm5, Imm7, Imm8, Op, Register},
+    op::{Imm3, Imm5, Imm7, Imm8, Op, Register, Condition},
     Result,
 };
 
@@ -414,6 +414,31 @@ fn right_bracket(input: &str) -> ParsingResult<()> {
     }
 }
 
+/// Returns the condition number corresponding to a branch instruction.
+///
+/// `input` is supposed to be lowercase. If `input` does not correspond to a
+/// condition, then an error is returned.
+fn branch_condition(input: &str) -> Result<Condition> {
+    match input {
+        "beq" => Ok(Condition(0)),
+        "bne" => Ok(Condition(1)),
+        "bcs" => Ok(Condition(2)),
+        "bcc" => Ok(Condition(3)),
+        "bmi" => Ok(Condition(4)),
+        "bpl" => Ok(Condition(5)),
+        "bvs" => Ok(Condition(6)),
+        "bvc" => Ok(Condition(7)),
+        "bhi" => Ok(Condition(8)),
+        "bls" => Ok(Condition(9)),
+        "bge" => Ok(Condition(10)),
+        "blt" => Ok(Condition(11)),
+        "bgt" => Ok(Condition(12)),
+        "ble" => Ok(Condition(13)),
+        "bal" => Ok(Condition(14)),
+        _ => Err("Unknown branching instruction"),
+    }
+}
+
 /// Parses an optional SP symbol, followed by an `arg_sep`.
 ///
 /// This parser is guaranteed to succeed.
@@ -700,6 +725,18 @@ fn parse_sub_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parse the arguments following a B-- instruction.
+///
+/// This function also takes the branch instruction in order to guess which
+/// condition is branched.
+fn parse_b_args<'a>(opcode: &str, tail: &'a str) -> ParsingResult<'a, Op> {
+    let cond = branch_condition(opcode)?;
+    let (imm8, tail) = imm8(tail)?;
+
+    let op = Op::B(cond, imm8);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -734,6 +771,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "ldr" => parse_ldr_args(tail),
         "add" => parse_add_args(tail),
         "sub" => parse_sub_args(tail),
+        branch if branch.starts_with('b') => parse_b_args(branch, tail),
         _ => todo!(),
     }?;
 
@@ -993,6 +1031,118 @@ mod tests {
         assert_eq!(
             parse_op("sub sp, #101").unwrap().0,
             Op::SubSp(Imm7(101)),
+        );
+    }
+
+    #[test]
+    fn parse_beq() {
+        assert_eq!(
+            parse_op("beq #99").unwrap().0,
+            Op::B(Condition(0), Imm8(99)),
+        );
+    }
+
+    #[test]
+    fn parse_bne() {
+        assert_eq!(
+            parse_op("bne #101").unwrap().0,
+            Op::B(Condition(1), Imm8(101)),
+        );
+    }
+
+    #[test]
+    fn parse_bcs() {
+        assert_eq!(
+            parse_op("bcs #127").unwrap().0,
+            Op::B(Condition(2), Imm8(127)),
+        );
+    }
+
+    #[test]
+    fn parse_bcc() {
+        assert_eq!(
+            parse_op("bcc #42").unwrap().0,
+            Op::B(Condition(3), Imm8(42)),
+        );
+    }
+
+    #[test]
+    fn parse_bmi() {
+        assert_eq!(
+            parse_op("bmi #101").unwrap().0,
+            Op::B(Condition(4), Imm8(101)),
+        );
+    }
+
+    #[test]
+    fn parse_bpl() {
+        assert_eq!(
+            parse_op("bpl #001").unwrap().0,
+            Op::B(Condition(5), Imm8(001)),
+        );
+    }
+
+    #[test]
+    fn parse_bvs() {
+        assert_eq!(
+            parse_op("bvs #001").unwrap().0,
+            Op::B(Condition(6), Imm8(1)),
+        );
+    }
+
+    #[test]
+    fn parse_bvc() {
+        assert_eq!(
+            parse_op("bvc #255").unwrap().0,
+            Op::B(Condition(7), Imm8(255)),
+        );
+    }
+
+    #[test]
+    fn parse_bhi() {
+        assert_eq!(
+            parse_op("bhi #13").unwrap().0,
+            Op::B(Condition(8), Imm8(13)),
+        );
+    }
+
+    #[test]
+    fn parse_bls() {
+        assert_eq!(
+            parse_op("bls #9").unwrap().0,
+            Op::B(Condition(9), Imm8(9)),
+        );
+    }
+
+    #[test]
+    fn parse_bge() {
+        assert_eq!(
+            parse_op("bge #0").unwrap().0,
+            Op::B(Condition(10), Imm8(0)),
+        );
+    }
+
+    #[test]
+    fn parse_blt() {
+        assert_eq!(
+            parse_op("blt #199").unwrap().0,
+            Op::B(Condition(11), Imm8(199)),
+        );
+    }
+
+    #[test]
+    fn parse_bgt() {
+        assert_eq!(
+            parse_op("bgt #201").unwrap().0,
+            Op::B(Condition(12), Imm8(201)),
+        );
+    }
+
+    #[test]
+    fn parse_ble() {
+        assert_eq!(
+            parse_op("ble #0").unwrap().0,
+            Op::B(Condition(13), Imm8(0)),
         );
     }
 }

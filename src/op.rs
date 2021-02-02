@@ -72,6 +72,20 @@ impl<T: AddBit> Encodable<T> for MHeader {
     }
 }
 
+/// Represents the Miscellaneous instruction header.
+///
+/// See section A5.2.6 (page 136) of the ARMv7 Architecture Manual.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct BHeader;
+
+impl<T: AddBit> Encodable<T> for BHeader {
+    type Output = Succ4<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
+        instruct.then(true).then(false).then(false).then(true)
+    }
+}
+
 // Next headers:
 //   - conditional branch: A.5.2.6 (page 136).
 
@@ -341,7 +355,10 @@ impl<T: AddBit> Encodable<T> for &Op {
                 .then((false, false, false, false, true))
                 .then(*imm7),
 
-            _ => todo!(),
+            Op::B(cond, imm8) => instruct
+                .then(BHeader)
+                .then(*cond)
+                .then(*imm8),
         }
     }
 }
@@ -522,3 +539,20 @@ impl<T: AddBit> Encodable<T> for Imm3 {
 /// | `1111` | Unused | N/A |
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Condition(pub u8);
+
+impl<T: AddBit> Encodable<T> for Condition {
+    type Output = Succ4<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
+        let v = self.0;
+
+        let bits = (
+            v & 0b1000 != 0,
+            v & 0b0100 != 0,
+            v & 0b0010 != 0,
+            v & 0b0001 != 0,
+        );
+
+        instruct.then(bits)
+    }
+}

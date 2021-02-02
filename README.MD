@@ -62,8 +62,6 @@ $ cargo test
 | LDR (immediate) | ✔️ | ✔️ |
 | ADD (SP plus immediate) | ✔️ | ✔️ |
 | SUB (SP minus immediate) | ✔️ | ✔️ |
-| B (conditional branche) | ❌ | ❌ |
-
-Clipboard helper: `✔️❌`
+| B (conditional branche) | ✔️ | ✔️ |
 
 [rustup]: https://rustup.rs
