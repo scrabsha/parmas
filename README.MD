@@ -47,7 +47,7 @@ $ cargo test
 | LSL (register) | ✔️ | ✔️ |
 | LSR (register) | ✔️ | ✔️ |
 | ASR (register) | ✔️ | ✔️ |
-| ADC (register) | ❌ | ❌ |
+| ADC (register) | ✔️ | ✔️ |
 | SBC (register) | ❌ | ❌ |
 | ROR (register) | ❌ | ❌ |
 | TST (register) | ❌ | ❌ |
