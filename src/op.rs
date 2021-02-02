@@ -3,7 +3,10 @@
 //! This modules contains the `Op` enum as well as all its dependencies. It
 //! also implements the encoding of all these types.
 
-use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder, Succ2, Succ3, Succ5, Succ6, Succ8, Succ10, AddBit};
+use crate::encoder::{
+    AddBit, Encodable, EncodedInstruction, InstructionEncoder, Succ10, Succ2, Succ3, Succ5, Succ6,
+    Succ8,
+};
 
 // The shift, add, sub, mov opcodes header.
 /// Represents the Shift, Add, Sub, Mov instruction header.
@@ -54,7 +57,6 @@ impl<T: AddBit> Encodable<T> for DpHeader {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Op {
     // Shift, add, sub, mov, section 10.1.1.
-
     /// LSL (immediate).
     LslI(Register, Register, Imm5),
     /// LSR (immediate).

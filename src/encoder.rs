@@ -9,8 +9,8 @@
 //! track at compile-time how much bits have been encoded. This corresponds to
 //! The `T0`, `Succ*` and `AddBit` definitions.
 
-use std::marker::PhantomData;
 use std::fmt;
+use std::marker::PhantomData;
 
 /// Represents the successor of a number.
 ///
@@ -77,11 +77,7 @@ pub(crate) trait AddBit {
     /// This function should not be redefined when this trait is implemented
     /// a specific type.
     fn add_bit(bit: bool, instr: u16) -> u16 {
-        let or_val = if bit {
-            1 << (15 - Self::OFFSET)
-        } else {
-            0
-        };
+        let or_val = if bit { 1 << (15 - Self::OFFSET) } else { 0 };
 
         instr | or_val
     }
