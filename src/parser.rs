@@ -3,6 +3,62 @@ use crate::{
     Result,
 };
 
+type ParsingResult<'a, T> = Result<(T, &'a str)>;
+
+fn multiple2<'a, A, B, F, G>(input: &'a str, f: F, g: G) -> ParsingResult<(A, B)>
+where
+    A: 'a,
+    B: 'a,
+    F: Fn(&'a str) -> ParsingResult<A>,
+    G: Fn(&'a str) -> ParsingResult<B>,
+{
+    let (a, tail) = f(input)?;
+    let (b, tail) = g(tail)?;
+
+    Ok(((a, b), tail))
+}
+
+fn multiple3<'a, A, B, C, F, G, H>(input: &'a str, f: F, g: G, h: H) -> ParsingResult<(A, B, C)>
+where
+    A: 'a,
+    B: 'a,
+    C: 'a,
+    F: Fn(&str) -> ParsingResult<A>,
+    G: Fn(&str) -> ParsingResult<B>,
+    H: Fn(&str) -> ParsingResult<C>,
+{
+    let ((a, b), tail) = multiple2(input, f, g)?;
+    let (c, tail) = h(tail)?;
+
+    Ok(((a, b, c), tail))
+}
+
+fn multiple5<'a, A, B, C, D, E, F, G, H, I, J>(
+    input: &'a str,
+    f: F,
+    g: G,
+    h: H,
+    i: I,
+    j: J,
+) -> ParsingResult<(A, B, C, D, E)>
+where
+    A: 'a,
+    B: 'a,
+    C: 'a,
+    D: 'a,
+    E: 'a,
+    F: Fn(&str) -> ParsingResult<A>,
+    G: Fn(&str) -> ParsingResult<B>,
+    H: Fn(&str) -> ParsingResult<C>,
+    I: Fn(&str) -> ParsingResult<D>,
+    J: Fn(&str) -> ParsingResult<E>,
+{
+    let ((a, b, c), tail) = multiple3(input, f, g, h)?;
+    let ((d, e), tail) = multiple2(tail, i, j)?;
+
+    Ok(((a, b, c, d, e), tail))
+}
+
 fn whitespaces_split_idx(input: &str) -> usize {
     input
         .char_indices()
@@ -11,12 +67,12 @@ fn whitespaces_split_idx(input: &str) -> usize {
         .unwrap_or_else(|| input.len())
 }
 
-fn whitespaces(input: &str) -> Result<&str> {
+fn whitespaces(input: &str) -> ParsingResult<()> {
     let idx = whitespaces_split_idx(input);
     if idx == 0 {
         Err("Expected whitespaces")
     } else {
-        Ok(input.split_at(idx).1)
+        Ok(((), input.split_at(idx).1))
     }
 }
 
@@ -25,7 +81,7 @@ fn whitespaces_opt(input: &str) -> &str {
     input.split_at(idx).1
 }
 
-fn symbol(input: &str) -> Result<(&str, &str)> {
+fn symbol(input: &str) -> ParsingResult<&str> {
     let index = input
         .char_indices()
         .find(|(_, chr)| !chr.is_alphabetic())
@@ -52,7 +108,7 @@ fn register_id(input: char) -> Result<Register> {
     })
 }
 
-fn register(input: &str) -> Result<(Register, &str)> {
+fn register(input: &str) -> ParsingResult<Register> {
     let mut crs = input.char_indices();
 
     match dbg!(crs.next()) {
@@ -68,7 +124,7 @@ fn register(input: &str) -> Result<(Register, &str)> {
     Ok((reg, tail))
 }
 
-fn lit(input: &str) -> Result<(usize, &str)> {
+fn lit(input: &str) -> ParsingResult<usize> {
     let mut crs = input.char_indices();
 
     dbg!(crs.as_str());
@@ -92,69 +148,70 @@ fn lit(input: &str) -> Result<(usize, &str)> {
     Ok((val, tail))
 }
 
-fn imm5(input: &str) -> Result<(Imm5, &str)> {
+fn imm5(input: &str) -> ParsingResult<Imm5> {
     match lit(input)? {
         (v, tail) if v < 32 => Ok((Imm5(v), tail)),
         _ => Err("Invalid imm5 value"),
     }
 }
 
-fn imm7(input: &str) -> Result<(Imm7, &str)> {
+fn imm7(input: &str) -> ParsingResult<Imm7> {
     match lit(input)? {
         (v, tail) if v < 128 => Ok((Imm7(v), tail)),
         _ => Err("Invalid imm7 value"),
     }
 }
 
-fn imm8(input: &str) -> Result<(Imm8, &str)> {
+fn imm8(input: &str) -> ParsingResult<Imm8> {
     match lit(input)? {
         (v, tail) if v < 256 => Ok((Imm8(v), tail)),
         _ => Err("Invalid imm7 value"),
     }
 }
 
-fn comma(input: &str) -> Result<&str> {
+fn comma(input: &str) -> ParsingResult<()> {
     if input.starts_with(',') {
-        Ok(input.split_at(1).1)
+        Ok(((), input.split_at(1).1))
     } else {
         Err("Expected `,`")
     }
 }
 
-fn comma_and_maybe_whitespaces(input: &str) -> Result<&str> {
-    let tail = comma(input)?;
-    Ok(whitespaces_opt(tail))
+fn comma_and_maybe_whitespaces(input: &str) -> ParsingResult<()> {
+    let (_, tail) = comma(input)?;
+    Ok(((), whitespaces_opt(tail)))
 }
 
-fn parse_lsls_args(input: &str) -> Result<(Op, &str)> {
-    let (rd, tail) = register(input)?;
-    let tail = comma_and_maybe_whitespaces(tail)?;
-
-    let (rm, tail) = register(tail)?;
-    let tail = comma_and_maybe_whitespaces(tail)?;
-
-    let (imm5, tail) = imm5(tail)?;
+fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, rm, _, imm5), tail) = multiple5(
+        input,
+        register,
+        comma_and_maybe_whitespaces,
+        register,
+        comma_and_maybe_whitespaces,
+        imm5,
+    )?;
 
     let op = Op::LslI(rd, rm, imm5);
     Ok((op, tail))
 }
 
-fn parse_lsrs_args(input: &str) -> Result<(Op, &str)> {
-    let (rd, tail) = register(input)?;
-    let tail = comma_and_maybe_whitespaces(tail)?;
-
-    let (rm, tail) = register(tail)?;
-    let tail = comma_and_maybe_whitespaces(tail)?;
-
-    let (imm5, tail) = imm5(tail)?;
+fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, rm, _, imm5), tail) = multiple5(
+        input,
+        register,
+        comma_and_maybe_whitespaces,
+        register,
+        comma_and_maybe_whitespaces,
+        imm5,
+    )?;
 
     let op = Op::LsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
-pub(crate) fn parse_op(input: &str) -> Result<(Op, &str)> {
-    let (opcode, tail) = symbol(input)?;
-    let tail = whitespaces(tail)?;
+pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
+    let ((opcode, _), tail) = multiple2(input, symbol, whitespaces)?;
 
     let opcode = opcode.to_lowercase();
 
