@@ -112,6 +112,30 @@ impl Encodable for &Op {
                 .then(*rd)
                 .then(*imm8),
 
+            Op::And(rdn, rm) => instruct
+                .then((false, true, false, false, false, false))
+                .then((false, false, false, false))
+                .then(*rm)
+                .then(*rdn),
+
+            Op::Eor(rdn, rm) => instruct
+                .then((false, true, false, false, false, false))
+                .then((false, false, false, true))
+                .then(*rm)
+                .then(*rdn),
+
+            Op::LslR(rdn, rm) => instruct
+                .then((false, true, false, false, false, false))
+                .then((false, false, true, false))
+                .then(*rm)
+                .then(*rdn),
+
+            Op::LsrR(rdn, rm) => instruct
+                .then((false, true, false, false, false, false))
+                .then((false, false, true, false))
+                .then(*rm)
+                .then(*rdn),
+
             _ => todo!(),
         }
     }
