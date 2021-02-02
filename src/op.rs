@@ -497,7 +497,7 @@ impl<T: AddBit> Encodable<T> for Imm3 {
 
 /// Represents any condition.
 ///
-/// The inner value must be lower than 14. It must be checked when the
+/// The inner value must be lower than 15. It must be checked when the
 /// the structure is created.
 ///
 /// Each value maps to a specific condition, as defined in the following table.
@@ -518,6 +518,7 @@ impl<T: AddBit> Encodable<T> for Imm3 {
 /// | `1011` | LT | Signed less than |
 /// | `1100` | GT | Signed greater than |
 /// | `1101` | LE | Signed less than or equal |
-/// | `1110`, `1111` | Unused | N/A |
+/// | `1110` | AL | Always true |
+/// | `1111` | Unused | N/A |
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Condition(pub u8);
