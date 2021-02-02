@@ -1,10 +1,25 @@
+//! A parser for the UAL language.
+//!
+//! This crate different kind of functions. Some allow to parse a specific
+//! terminal, while other allow to combine several parsing functions.
+//!
+//! The parsing functions return a `ParsingResult<T>`, which is a modified
+//! version of `Result`, which holds the parsed data and the remaining input.
+
 use crate::{
     op::{Imm3, Imm5, Imm7, Imm8, Op, Register},
     Result,
 };
 
+/// Represents either a successfull parsing, or a failure.
+///
+/// The data contained in the second tuple member is the remaining input.
 type ParsingResult<'a, T> = Result<(T, &'a str)>;
 
+/// Combines two parsing functions.
+///
+/// An error is returned if either `f` or `g` returned an error. Otherwise,
+/// the two results are returned.
 fn multiple2<'a, A, B, F, G>(input: &'a str, f: F, g: G) -> ParsingResult<(A, B)>
 where
     A: 'a,
@@ -18,6 +33,10 @@ where
     Ok(((a, b), tail))
 }
 
+/// Combines three parsing functions.
+///
+/// An error is returned if either `f`, `g` or `h` returned an error.
+/// Otherwise, the three results are returned.
 fn multiple3<'a, A, B, C, F, G, H>(input: &'a str, f: F, g: G, h: H) -> ParsingResult<(A, B, C)>
 where
     A: 'a,
@@ -33,6 +52,10 @@ where
     Ok(((a, b, c), tail))
 }
 
+/// Combines five parsing functions.
+///
+/// An error is returned if either `f`, `g` `h`, `i` or `j` returned an error.
+/// Otherwise, the five results are returned.
 fn multiple5<'a, A, B, C, D, E, F, G, H, I, J>(
     input: &'a str,
     f: F,
@@ -59,6 +82,10 @@ where
     Ok(((a, b, c, d, e), tail))
 }
 
+/// Parses two instruction arguments.
+///
+/// Instruction arguments are separated by one comma and zero or more
+/// whitespaces.
 fn args2<'a, A, B, F, G>(input: &'a str, f: F, g: G) -> ParsingResult<(A, B)>
 where
     A: 'a,
@@ -70,6 +97,10 @@ where
     Ok(((a, b), tail))
 }
 
+/// Parses three instruction arguments.
+///
+/// Instruction arguments are separated by one comma and zero or more
+/// whitespaces.
 fn args3<'a, A, B, C, F, G, H>(input: &'a str, f: F, g: G, h: H) -> ParsingResult<(A, B, C)>
 where
     A: 'a,
@@ -83,6 +114,10 @@ where
     Ok(((a, b, c), tail))
 }
 
+/// Returns the byte-index of the first non-whitespace of a string slice.
+///
+/// The definition of whitespace follows the definition given by the unicode
+/// standard.
 fn whitespaces_split_idx(input: &str) -> usize {
     input
         .char_indices()
@@ -91,6 +126,10 @@ fn whitespaces_split_idx(input: &str) -> usize {
         .unwrap_or_else(|| input.len())
 }
 
+/// Returns whether if a string slice starts with a whitespace or not.
+///
+/// The definition of whitespace follows the definition given by the unicode
+/// standard.
 fn starts_with_whitespace(input: &str) -> bool {
     input
         .chars()
@@ -99,16 +138,32 @@ fn starts_with_whitespace(input: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Returns whether if a string slice starts with a comment or not.
+///
+/// A comment starts with either `//` or `/*`.
 fn starts_with_comment(input: &str) -> bool {
     input.starts_with("//") || input.starts_with("/*")
 }
 
+/// Returns the byte-index of the first non-comment character of a string
+/// slice.
+///
+/// If `input` starts with `//`, then the first non-comment character is the
+/// character following the next newline.
+///
+/// If `input` starts with `/*`, then the first non-comment character is the
+/// character following the next `*/`.
+///
+/// In other situations, `Ok(0)` is returned.
+///
+/// Returns an error if input starts with `/*` but contains no other `*/`.
 fn comment_split_idx(input: &str) -> Result<usize> {
     if input.starts_with("//") {
         Ok(input
             .char_indices()
-            .find(|(_, chr)| *chr == '\n')
+            .skip_while(|(_, chr)| *chr != '\n')
             .map(|(idx, _)| idx)
+            .nth(1)
             .unwrap_or_else(|| input.len()))
     } else if input.starts_with("/*") {
         input
@@ -120,6 +175,11 @@ fn comment_split_idx(input: &str) -> Result<usize> {
     }
 }
 
+/// Removes whitespaces at the beginning of a string.
+///
+/// Whitespace follows the definition of unicode whitespace.
+///
+/// If `input` does not start with a whitespace, then an error is returned.
 fn whitespaces(mut input: &str) -> ParsingResult<()> {
     let mut eaten_bytes = 0;
 
@@ -133,8 +193,6 @@ fn whitespaces(mut input: &str) -> ParsingResult<()> {
         input = input.split_at(idx).1;
     }
 
-    dbg!(input);
-
     if eaten_bytes == 0 {
         return Err("Expected whitespaces");
     } else {
@@ -142,11 +200,24 @@ fn whitespaces(mut input: &str) -> ParsingResult<()> {
     }
 }
 
+/// Parses an optional amount of whitespaces from a string.
+///
+/// See the documentation of `whitespaces` for more information.
+///
+/// This function is guaranteed to always succeed.
 fn whitespaces_opt(input: &str) -> ParsingResult<()> {
-    let idx = whitespaces_split_idx(input);
-    Ok(((), input.split_at(idx).1))
+    let v = whitespaces(input)
+        .unwrap_or(((), input));
+    
+    Ok(v)
 }
 
+/// Parses a symbol from an input string.
+///
+/// A symbol is a contiguous sequence of alphabetic characters, as defined in
+/// the unicode standard.
+///
+/// Returns an error if `input` does not start with an alphabetic character.
 fn symbol(input: &str) -> ParsingResult<&str> {
     let index = input
         .char_indices()
@@ -160,6 +231,13 @@ fn symbol(input: &str) -> ParsingResult<&str> {
     }
 }
 
+/// Translates a char into a possible register id.
+///
+/// If `input` is one of `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`, then it gets
+/// translated as a register. Otherwise, an error is returned.
+///
+/// A register is always represented as a single char, so this function accepts
+/// a single char.
 fn register_id(input: char) -> Result<Register> {
     Ok(match input {
         '0' => Register::R0,
@@ -174,6 +252,10 @@ fn register_id(input: char) -> Result<Register> {
     })
 }
 
+/// Parses a register from a string.
+///
+/// A register is represented by the symbol `r`, immediatly followed by a valid
+/// register id.
 fn register(input: &str) -> ParsingResult<Register> {
     let mut crs = input.char_indices();
 
@@ -190,6 +272,10 @@ fn register(input: &str) -> ParsingResult<Register> {
     Ok((reg, tail))
 }
 
+/// Parses a number literal from a string.
+///
+/// A number literal is composed of a `#` followed by one or more decimal
+/// digits.
 fn lit(input: &str) -> ParsingResult<usize> {
     let mut crs = input.char_indices();
 
@@ -211,6 +297,9 @@ fn lit(input: &str) -> ParsingResult<usize> {
     Ok((val, tail))
 }
 
+/// Parses an `imm3` from an input string.
+///
+/// An `imm3` is a literal whose value is lower than 8.
 fn imm3(input: &str) -> ParsingResult<Imm3> {
     match lit(input)? {
         (v, tail) if v < 8 => Ok((Imm3(v), tail)),
@@ -218,6 +307,9 @@ fn imm3(input: &str) -> ParsingResult<Imm3> {
     }
 }
 
+/// Parses an `imm5` from an input string.
+///
+/// An `imm5` is a literal whose value is lower than 32.
 fn imm5(input: &str) -> ParsingResult<Imm5> {
     match lit(input)? {
         (v, tail) if v < 32 => Ok((Imm5(v), tail)),
@@ -225,6 +317,9 @@ fn imm5(input: &str) -> ParsingResult<Imm5> {
     }
 }
 
+/// Parses an `imm7` from an input string.
+///
+/// An `imm7` is a literal whose value is lower than 128.
 fn imm7(input: &str) -> ParsingResult<Imm7> {
     match lit(input)? {
         (v, tail) if v < 128 => Ok((Imm7(v), tail)),
@@ -232,6 +327,9 @@ fn imm7(input: &str) -> ParsingResult<Imm7> {
     }
 }
 
+/// Parses an `imm8` from an input string.
+///
+/// An `imm8` is a literal whose value is lower than 256.
 fn imm8(input: &str) -> ParsingResult<Imm8> {
     match lit(input)? {
         (v, tail) if v < 256 => Ok((Imm8(v), tail)),
@@ -239,6 +337,7 @@ fn imm8(input: &str) -> ParsingResult<Imm8> {
     }
 }
 
+/// Parses a comma `,`.
 fn comma(input: &str) -> ParsingResult<()> {
     if input.starts_with(',') {
         Ok(((), input.split_at(1).1))
@@ -247,11 +346,16 @@ fn comma(input: &str) -> ParsingResult<()> {
     }
 }
 
+/// Parses an instruction argument separator.
+///
+/// An instruction argument separator is defined zero or more whitespaces, a
+/// comma and zero or more whitespaces.
 fn arg_sep(input: &str) -> ParsingResult<()> {
-    let ((_, _), tail) = multiple2(input, comma, whitespaces_opt)?;
+    let ((_, _, _), tail) = multiple3(input, whitespaces_opt, comma, whitespaces_opt)?;
     Ok(((), tail))
 }
 
+/// Parses the arguments following an LSLS (immediate) instruction.
 fn parse_lsls_immediate_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
@@ -259,6 +363,7 @@ fn parse_lsls_immediate_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an LSLS (register) instruction.
 fn parse_lsls_register_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -266,10 +371,12 @@ fn parse_lsls_register_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an LSLS (any form) instruction.
 fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
     parse_lsls_immediate_args(input).or_else(|_| parse_lsls_register_args(input))
 }
 
+/// Parses the arguments following an LSRS (immediate) instruction.
 fn parse_lsrs_immediate_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
@@ -277,6 +384,7 @@ fn parse_lsrs_immediate_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an LSRS (register) instruction.
 fn parse_lsrs_register_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -284,10 +392,12 @@ fn parse_lsrs_register_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an LSRS (any form) instruction.
 fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
     parse_lsrs_immediate_args(input).or_else(|_| parse_lsrs_register_args(input))
 }
 
+/// Parses the arguments following an ASRS (immediate) instruction.
 fn parse_asrs_args_immediate(input: &str) -> ParsingResult<Op> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
@@ -295,6 +405,7 @@ fn parse_asrs_args_immediate(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an ASRS (register) instruction.
 fn parse_asrs_args_register(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -302,10 +413,12 @@ fn parse_asrs_args_register(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an ASRS (any form) instruction.
 fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
     parse_asrs_args_immediate(input).or_else(|_| parse_asrs_args_register(input))
 }
 
+/// Parses the arguments following an ADDS (register) instruction.
 fn parse_adds_register_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rn, rm), tail) = args3(input, register, register, register)?;
 
@@ -313,6 +426,7 @@ fn parse_adds_register_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an ADDS (immediate) instruction.
 fn parse_adds_immediate_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rn, rm), tail) = args3(input, register, register, imm3)?;
 
@@ -320,10 +434,12 @@ fn parse_adds_immediate_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an ADDS (any form) instruction.
 fn parse_adds_args(input: &str) -> ParsingResult<Op> {
     parse_adds_register_args(input).or_else(|_| parse_adds_immediate_args(input))
 }
 
+/// Parses the arguments following an SUBS (register) instruction.
 fn parse_subs_register_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rn, rm), tail) = args3(input, register, register, register)?;
 
@@ -331,6 +447,7 @@ fn parse_subs_register_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an SUBS (immediate) instruction.
 fn parse_subs_immediate_args(input: &str) -> ParsingResult<Op> {
     let ((rd, rn, imm3), tail) = args3(input, register, register, imm3)?;
 
@@ -338,10 +455,12 @@ fn parse_subs_immediate_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an SUBS (any form) instruction.
 fn parse_subs_args(input: &str) -> ParsingResult<Op> {
     parse_subs_register_args(input).or_else(|_| parse_subs_immediate_args(input))
 }
 
+/// Parses the arguments following an MOVS instruction.
 fn parse_movs_args(input: &str) -> ParsingResult<Op> {
     let ((rd, imm8), tail) = args2(input, register, imm8)?;
 
@@ -349,6 +468,7 @@ fn parse_movs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an ANDS instruction.
 fn parse_ands_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -356,6 +476,7 @@ fn parse_ands_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an EORS instruction.
 fn parse_eors_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -363,6 +484,7 @@ fn parse_eors_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an ADCS instruction.
 fn parse_adcs_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -370,6 +492,7 @@ fn parse_adcs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an SBCS instruction.
 fn parse_sbcs_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -377,6 +500,7 @@ fn parse_sbcs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an RORS instruction.
 fn parse_rors_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -384,6 +508,7 @@ fn parse_rors_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an TSTS instruction.
 fn parse_tsts_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -391,6 +516,7 @@ fn parse_tsts_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an RSBS instruction.
 fn parse_rsbs_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -398,6 +524,7 @@ fn parse_rsbs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an CMPS instruction.
 fn parse_cmps_args(input: &str) -> ParsingResult<Op> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
@@ -405,6 +532,11 @@ fn parse_cmps_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses an operation from an input string.
+///
+/// An operation is defined as a mnemonic and a sequence of arguments. The
+/// instruction name is recognized and the corresponding function is then
+/// called.
 pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
     let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
 
@@ -432,6 +564,11 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn comment_split_idx_handles_newlines_correctly() {
+        assert_eq!(comment_split_idx("// hello\n world"), Ok(9));
+    }
 
     #[test]
     fn whitespaces_handles_single_line_comments() {

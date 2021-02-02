@@ -1,6 +1,14 @@
+//! Represents a specific ARM-Cortex M0 operation.
+//!
+//! This modules contains the `Op` enum as well as all its dependencies. It
+//! also implements the encoding of all these types.
+
 use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder, Succ2, Succ3, Succ5, Succ6, Succ8, Succ10, AddBit};
 
-// The shift, add, sub, mov opcodes header, section 10.1.1.
+// The shift, add, sub, mov opcodes header.
+/// Represents the Shift, Add, Sub, Mov instruction header.
+///
+/// See section A5.2.1 (page 130) of the ARMv7 Architecture Manual.
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct SasmHeader;
 
@@ -12,9 +20,17 @@ impl<T: AddBit> Encodable<T> for SasmHeader {
     }
 }
 
-// The data processing header, section 10.1.2.
+// The data processing header.
+/// Represents the data processing instruction header.
+///
+/// See section A5.2.2 (page 131) of the ARMv7 Architecture Manual.
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct DpHeader;
+
+// Next headers:
+//   - load/store: A5.2.4 (page 133),
+//   - miscellaneous: A.5.2.5 (page 134),
+//   - conditional branch: A.5.2.6 (page 136).
 
 impl<T: AddBit> Encodable<T> for DpHeader {
     type Output = Succ6<T>;
@@ -30,49 +46,92 @@ impl<T: AddBit> Encodable<T> for DpHeader {
     }
 }
 
+/// Represents a specific ARM-Cortex M0 operation.
+///
+/// This enum is generated with the `parse_op` function from the `parser`
+/// module. It can then encoded to a 16-bit value using the `Encodable` trait
+/// and the `encode` method.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Op {
     // Shift, add, sub, mov, section 10.1.1.
+
+    /// LSL (immediate).
     LslI(Register, Register, Imm5),
+    /// LSR (immediate).
     LsrI(Register, Register, Imm5),
+    /// ASR (immediate).
     AsrI(Register, Register, Imm5),
+    /// ADD (register).
     AddR(Register, Register, Register),
+    /// SUB (register).
     SubR(Register, Register, Register),
+    /// ADD (immediate).
     AddI(Register, Register, Imm3),
+    /// SUB (immediate).
     SubI(Register, Register, Imm3),
+    /// MOV (immediate).
     MovI(Register, Imm8),
 
     // Data processing, section 10.1.2.
+    /// AND (register).
     And(Register, Register),
+    /// EOR (register).
     Eor(Register, Register),
+    /// LSR (register).
     LslR(Register, Register),
+    /// LSR (register).
     LsrR(Register, Register),
+    /// ASR (register).
     AsrR(Register, Register),
+    /// ADC (register).
     AdcR(Register, Register),
+    /// SBC (register).
     SbcR(Register, Register),
+    /// ROR (register).
     RorR(Register, Register),
+    /// TST (register).
     Tst(Register, Register),
+    /// RSB (immediate).
     Rsb(Register, Register), // This is strange
+    /// CMP (register).
     Cmp(Register, Register),
+    /// CMN (register).
     Cmn(Register, Register),
+    /// ORR (register).
     Orr(Register, Register),
+    /// MUL.
     Mul(Register, Register, Register),
+    /// BIC (register).
     Bic(Register, Register),
+    /// MVN (register).
     Mvn(Register, Register),
 
     // Load/Store, section 10.1.3.
+    /// STR (immediate).
     Str(Register, Imm8),
+    /// LDR (immediate).
     Ldr(Register, Imm8),
 
     // Miscellianous 16-bit instructions, section 10.1.4.
+    /// ADD (SP plus immediate).
     AddSp(Imm7),
+    /// SUB (SP minus immediate).
     SubSp(Imm7),
 
     // Branch, section 10.1.6.
+    /// B (conditionnal branch).
     B(Condition, String),
 }
 
 impl Op {
+    /// Creates an `EncodedInstruction` from the current instruction.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let v = Op::LslI(Register::R3, Register::R1, Imm5(20));
+    /// assert_eq!(v.encode(), EncodedInstruction(Ox050b));
+    /// ```
     pub(crate) fn encode(&self) -> EncodedInstruction {
         InstructionEncoder::new()
             .then(self)
@@ -215,15 +274,24 @@ impl<T: AddBit> Encodable<T> for &Op {
     }
 }
 
+/// Represents a valid register.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Register {
+    /// Register 0.
     R0,
+    /// Register 1.
     R1,
+    /// Register 2.
     R2,
+    /// Register 3.
     R3,
+    /// Register 4.
     R4,
+    /// Register 5.
     R5,
+    /// Register 6.
     R6,
+    /// Register 7.
     R7,
 }
 
@@ -247,7 +315,12 @@ impl<T: AddBit> Encodable<T> for Register {
     }
 }
 
-// Must be < 32
+/// Represents an Imm5.
+///
+/// An imm5 is a contiguous sequence of five bits.
+///
+/// It is not guaranteed to be five bits long. Such constraint must be checked
+/// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm5(pub usize);
 
@@ -269,6 +342,12 @@ impl<T: AddBit> Encodable<T> for Imm5 {
 }
 
 // Must be < 256
+/// Represents an Imm8.
+///
+/// An imm8 is a contiguous sequence of eight bits.
+///
+/// It is not guaranteed to be eight bits long. Such constraint must be checked
+/// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm8(pub usize);
 
@@ -296,11 +375,21 @@ impl<T: AddBit> Encodable<T> for Imm8 {
     }
 }
 
-// Must be < 128
+/// Represents an Imm7.
+///
+/// An imm7 is a contiguous sequence of seven bits.
+///
+/// It is not guaranteed to be seven bits long. Such constraint must be checked
+/// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm7(pub usize);
 
-// Must be < 8
+/// Represents an Imm".
+///
+/// An imm3 is a contiguous sequence of three bits.
+///
+/// It is not guaranteed to be three bits long. Such constraint must be checked
+/// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm3(pub usize);
 
@@ -315,6 +404,29 @@ impl<T: AddBit> Encodable<T> for Imm3 {
     }
 }
 
-// Must be < 15
+/// Represents any condition.
+///
+/// The inner value must be lower than 14. It must be checked when the
+/// the structure is created.
+///
+/// Each value maps to a specific condition, as defined in the following table.
+///
+/// | Value | Condition Code | Signification |
+/// | ----- | -------------- | ------------- |
+/// | `0000` | EQ | Equality |
+/// | `0001` | NE | Non-equality |
+/// | `0010` | CS | Carry set |
+/// | `0011` | CC | Carry clear |
+/// | `0100` | MI | Minus, negative |
+/// | `0101` | PL | Plus, positive |
+/// | `0110` | VS | OVerflow Set |
+/// | `0111` | VC | OVerflow Clear |
+/// | `1000` | HI | Unsigned higher |
+/// | `1001` | LS | Unsigner lower or same |
+/// | `1010` | GE | Signed greater or equal |
+/// | `1011` | LT | Signed less than |
+/// | `1100` | GT | Signed greater than |
+/// | `1101` | LE | Signed less than or equal |
+/// | `1110`, `1111` | Unused | N/A |
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Condition(pub u8);
