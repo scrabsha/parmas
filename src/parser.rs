@@ -91,12 +91,53 @@ fn whitespaces_split_idx(input: &str) -> usize {
         .unwrap_or_else(|| input.len())
 }
 
-fn whitespaces(input: &str) -> ParsingResult<()> {
-    let idx = whitespaces_split_idx(input);
-    if idx == 0 {
-        Err("Expected whitespaces")
+fn starts_with_whitespace(input: &str) -> bool {
+    input
+        .chars()
+        .next()
+        .map(char::is_whitespace)
+        .unwrap_or(false)
+}
+
+fn starts_with_comment(input: &str) -> bool {
+    input.starts_with("//") || input.starts_with("/*")
+}
+
+fn comment_split_idx(input: &str) -> Result<usize> {
+    if input.starts_with("//") {
+        Ok(input
+            .char_indices()
+            .find(|(_, chr)| *chr == '\n')
+            .map(|(idx, _)| idx)
+            .unwrap_or_else(|| input.len()))
+    } else if input.starts_with("/*") {
+        input.find("*/")
+            .map(|idx| idx + 2)
+            .ok_or("Unclosed multiline comment")
     } else {
-        Ok(((), input.split_at(idx).1))
+        Ok(0)
+    }
+}
+
+fn whitespaces(mut input: &str) -> ParsingResult<()> {
+    let mut eaten_bytes = 0;
+
+    while starts_with_comment(input) || starts_with_whitespace(input) {
+        let idx = whitespaces_split_idx(input);
+        eaten_bytes += idx;
+        input = input.split_at(idx).1;
+
+        let idx = comment_split_idx(input)?;
+        eaten_bytes += idx;
+        input = input.split_at(idx).1;
+    }
+
+    dbg!(input);
+
+    if eaten_bytes == 0 {
+        return Err("Expected whitespaces");
+    } else {
+        Ok(((), input))
     }
 }
 
@@ -321,6 +362,20 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn whitespaces_handles_single_line_comments() {
+        let input = "// foo bar\nhello";
+        let tail = whitespaces(input).unwrap().1;
+        assert_eq!(tail, "hello");
+    }
+
+    #[test]
+    fn whitespaces_handles_multiline_comments() {
+        let input = "/* foo bar baz */hello";
+        let tail = whitespaces(input).unwrap().1;
+        assert_eq!(tail, "hello");
+    }
 
     #[test]
     fn parse_op_lsls_immediate() {
