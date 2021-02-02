@@ -383,6 +383,16 @@ fn stack_adress(input: &str) -> ParsingResult<Imm8> {
     Ok((Imm8(i / 4), tail))
 }
 
+/// Parses a stack adress, as imm7 this time.
+fn stack_adresse_imm7(input: &str) -> ParsingResult<Imm7> {
+    let (Imm8(i), tail) = stack_adress(input)?;
+    if i & 128 != 0 {
+        Err("Stack adress is to big")
+    } else {
+        Ok((Imm7(i), tail))
+    }
+}
+
 /// Parses a comma `,`.
 fn comma(input: &str) -> ParsingResult<()> {
     if input.starts_with(',') {
@@ -772,7 +782,7 @@ fn parse_ldr_args(input: &str) -> ParsingResult<RawOp> {
 
 /// Parses the arguments following an ADD instruction.
 fn parse_add_args(input: &str) -> ParsingResult<RawOp> {
-    let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, imm7)?;
+    let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, stack_adresse_imm7)?;
 
     let op = RawOp::AddSp(imm7);
     Ok((op, tail))
@@ -780,7 +790,7 @@ fn parse_add_args(input: &str) -> ParsingResult<RawOp> {
 
 /// Parses the arguments following an SUB instruction.
 fn parse_sub_args(input: &str) -> ParsingResult<RawOp> {
-    let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, imm7)?;
+    let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, stack_adresse_imm7)?;
 
     let op = RawOp::SubSp(imm7);
     Ok((op, tail))
@@ -1158,16 +1168,16 @@ mod tests {
 
     #[test]
     fn parse_add() {
-        assert_eq!(op("add sp, sp, #101").unwrap().0, RawOp::AddSp(Imm7(101)),);
+        assert_eq!(op("add sp, sp, #104").unwrap().0, RawOp::AddSp(Imm7(26)),);
 
-        assert_eq!(op("add sp, #101").unwrap().0, RawOp::AddSp(Imm7(101)),);
+        assert_eq!(op("add sp, #64").unwrap().0, RawOp::AddSp(Imm7(16)),);
     }
 
     #[test]
     fn parse_sub() {
-        assert_eq!(op("sub sp, sp, #101").unwrap().0, RawOp::SubSp(Imm7(101)),);
+        assert_eq!(op("sub sp, sp, #64").unwrap().0, RawOp::SubSp(Imm7(16)),);
 
-        assert_eq!(op("sub sp, #101").unwrap().0, RawOp::SubSp(Imm7(101)),);
+        assert_eq!(op("sub sp, #20").unwrap().0, RawOp::SubSp(Imm7(5)),);
     }
 
     #[test]
