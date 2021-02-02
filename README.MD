@@ -52,7 +52,7 @@ $ cargo test
 | ROR (register) | ✔️ | ✔️ |
 | TST (register) | ✔️ | ✔️ |
 | RSB (immediate) | ✔️ | ✔️ |
-| CMP (register) | ❌ | ❌ |
+| CMP (register) | ✔️ | ✔️ |
 | CMN (register) | ❌ | ❌ |
 | ORR (register) | ❌ | ❌ |
 | MUL | ❌ | ❌ |

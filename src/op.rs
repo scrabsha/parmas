@@ -185,7 +185,7 @@ impl Encodable for &Op {
                 .then((false, true, true, true))
                 .then(*rm)
                 .then(*rdn),
-            
+
             Op::Tst(rdn, rm) => instruct
                 .then(DpHeader)
                 .then((true, false, false, false))
@@ -195,6 +195,12 @@ impl Encodable for &Op {
             Op::Rsb(rdn, rm) => instruct
                 .then(DpHeader)
                 .then((true, false, false, true))
+                .then(*rm)
+                .then(*rdn),
+
+            Op::Cmp(rdn, rm) => instruct
+                .then(DpHeader)
+                .then((true, false, true, false))
                 .then(*rm)
                 .then(*rdn),
 
