@@ -60,7 +60,7 @@ $ cargo test
 | MVN (register) | ✔️ | ✔️ |
 | STR (immediate) | ✔️ | ✔️ |
 | LDR (immediate) | ✔️ | ✔️ |
-| ADD (SP plus immediate) | ❌ | ❌ |
+| ADD (SP plus immediate) | ✔️ | ✔️ |
 | SUB (SP minus immediate) | ❌ | ❌ |
 | B (conditional branche) | ❌ | ❌ |
 

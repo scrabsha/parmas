@@ -4,7 +4,7 @@
 //! also implements the encoding of all these types.
 
 use crate::encoder::{
-    AddBit, Encodable, EncodedInstruction, InstructionEncoder, Succ10, Succ2, Succ3, Succ4, Succ5,
+    AddBit, Encodable, EncodedInstruction, InstructionEncoder, Succ10, Succ2, Succ3, Succ4, Succ5, Succ7,
     Succ6, Succ8,
 };
 
@@ -58,8 +58,21 @@ impl<T: AddBit> Encodable<T> for LsHeader {
     }
 }
 
+/// Represents the Miscellaneous instruction header.
+///
+/// See section A5.2.5 (page 134) of the ARMv7 Architecture Manual.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct MHeader;
+
+impl<T: AddBit> Encodable<T> for MHeader {
+    type Output = Succ4<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
+        instruct.then(true).then(false).then(true).then(true)
+    }
+}
+
 // Next headers:
-//   - miscellaneous: A.5.2.5 (page 134),
 //   - conditional branch: A.5.2.6 (page 136).
 
 /// Represents a specific ARM-Cortex M0 operation.
@@ -318,6 +331,11 @@ impl<T: AddBit> Encodable<T> for &Op {
 
             Op::Ldr(rt, imm8) => instruct.then(LsHeader).then(true).then(*rt).then(*imm8),
 
+            Op::AddSp(imm7) => instruct
+                .then(MHeader)
+                .then((false,false, false, false, false))
+                .then(*imm7),
+
             _ => todo!(),
         }
     }
@@ -432,6 +450,29 @@ impl<T: AddBit> Encodable<T> for Imm8 {
 /// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm7(pub usize);
+
+impl<T: AddBit> Encodable<T> for Imm7 {
+    type Output = Succ7<T>;
+
+    fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
+        let v = self.0;
+        let (hi, lo) = (
+            (
+                v & 0b1000000 != 0,
+                v & 0b0100000 != 0,
+                v & 0b0010000 != 0,
+            ),
+            (
+                v & 0b0001000 != 0,
+                v & 0b0000100 != 0,
+                v & 0b0000010 != 0,
+                v & 0b0000001 != 0,
+            )
+        );
+
+        instruct.then(hi).then(lo)
+    }
+}
 
 /// Represents an Imm".
 ///

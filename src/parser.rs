@@ -56,6 +56,33 @@ where
 ///
 /// An error is returned if either `f`, `g` `h`, `i` or `j` returned an error.
 /// Otherwise, the five results are returned.
+fn multiple4<'a, A, B, C, D, F, G, H, I>(
+    input: &'a str,
+    f: F,
+    g: G,
+    h: H,
+    i: I,
+) -> ParsingResult<(A, B, C, D)>
+where
+    A: 'a,
+    B: 'a,
+    C: 'a,
+    D: 'a,
+    F: Fn(&'a str) -> ParsingResult<A>,
+    G: Fn(&'a str) -> ParsingResult<B>,
+    H: Fn(&'a str) -> ParsingResult<C>,
+    I: Fn(&'a str) -> ParsingResult<D>,
+{
+    let ((a, b), tail) = multiple2(input, f, g)?;
+    let ((c, d), tail) = multiple2(tail, h, i)?;
+
+    Ok(((a, b, c, d), tail))
+}
+
+/// Combines five parsing functions.
+///
+/// An error is returned if either `f`, `g` `h`, `i` or `j` returned an error.
+/// Otherwise, the five results are returned.
 fn multiple5<'a, A, B, C, D, E, F, G, H, I, J>(
     input: &'a str,
     f: F,
@@ -387,6 +414,15 @@ fn right_bracket(input: &str) -> ParsingResult<()> {
     }
 }
 
+/// Parses an optional SP symbol, followed by an `arg_sep`.
+///
+/// This parser is guaranteed to succeed.
+fn sp_arg_opt(input: &str) -> ParsingResult<()> {
+    multiple2(input, sp, arg_sep)
+        .map(|((_, _), tail)| ((), tail))
+        .or(Ok(((), input)))
+}
+
 /// Parses the inner part of the second argument of STR and LDR instructions.
 ///
 /// The inner part corresonds to what is between `[` and `]`.
@@ -648,6 +684,14 @@ fn parse_ldr_args(input: &str) -> ParsingResult<Op> {
         .map(|((rt, imm8), tail)| (Op::Ldr(rt, imm8), tail))
 }
 
+/// Parses the arguments following an ADD instruction.
+fn parse_add_args(input: &str) -> ParsingResult<Op> {
+    let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, imm7)?;
+
+    let op = Op::AddSp(imm7);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -680,6 +724,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "mvns" => parse_mvns_args(tail),
         "str" => parse_str_args(tail),
         "ldr" => parse_ldr_args(tail),
+        "add" => parse_add_args(tail),
         _ => todo!(),
     }?;
 
@@ -913,6 +958,19 @@ mod tests {
         assert_eq!(
             parse_op("ldr r4, [sp]").unwrap().0,
             Op::Ldr(Register::R4, Imm8(0)),
+        );
+    }
+
+    #[test]
+    fn parse_add() {
+        assert_eq!(
+            parse_op("add sp, sp, #101").unwrap().0,
+            Op::AddSp(Imm7(101)),
+        );
+
+        assert_eq!(
+            parse_op("add sp, #101").unwrap().0,
+            Op::AddSp(Imm7(101)),
         );
     }
 }
