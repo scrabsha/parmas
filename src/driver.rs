@@ -47,7 +47,6 @@ impl Assembler<(), ()> {
         }
     }
 
-
     /// Creates an object which allows to build the assembler.
     pub(crate) fn builder() -> Assembler<(), ()> {
         Assembler {

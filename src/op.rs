@@ -95,7 +95,7 @@ impl<T: AddBit> Encodable<T> for BHeader {
 /// module. It can then encoded to a 16-bit value using the `Encodable` trait
 /// and the `encode` method.
 #[derive(Clone, Debug, PartialEq)]
-pub enum Op {
+pub(crate) enum Op {
     // Shift, add, sub, mov, section 10.1.1.
     /// LSL (immediate).
     LslI(Register, Register, Imm5),
@@ -355,17 +355,14 @@ impl<T: AddBit> Encodable<T> for &Op {
                 .then((false, false, false, false, true))
                 .then(*imm7),
 
-            Op::B(cond, imm8) => instruct
-                .then(BHeader)
-                .then(*cond)
-                .then(*imm8),
+            Op::B(cond, imm8) => instruct.then(BHeader).then(*cond).then(*imm8),
         }
     }
 }
 
 /// Represents a valid register.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Register {
+pub(crate) enum Register {
     /// Register 0.
     R0,
     /// Register 1.
@@ -411,7 +408,7 @@ impl<T: AddBit> Encodable<T> for Register {
 /// It is not guaranteed to be five bits long. Such constraint must be checked
 /// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Imm5(pub usize);
+pub(crate) struct Imm5(pub(crate) usize);
 
 impl<T: AddBit> Encodable<T> for Imm5 {
     type Output = Succ5<T>;
@@ -438,7 +435,7 @@ impl<T: AddBit> Encodable<T> for Imm5 {
 /// It is not guaranteed to be eight bits long. Such constraint must be checked
 /// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Imm8(pub usize);
+pub(crate) struct Imm8(pub(crate) usize);
 
 impl<T: AddBit> Encodable<T> for Imm8 {
     type Output = Succ8<T>;
@@ -471,7 +468,7 @@ impl<T: AddBit> Encodable<T> for Imm8 {
 /// It is not guaranteed to be seven bits long. Such constraint must be checked
 /// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Imm7(pub usize);
+pub(crate) struct Imm7(pub(crate) usize);
 
 impl<T: AddBit> Encodable<T> for Imm7 {
     type Output = Succ7<T>;
@@ -499,7 +496,7 @@ impl<T: AddBit> Encodable<T> for Imm7 {
 /// It is not guaranteed to be three bits long. Such constraint must be checked
 /// when the structure is created.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Imm3(pub usize);
+pub(crate) struct Imm3(pub(crate) usize);
 
 impl<T: AddBit> Encodable<T> for Imm3 {
     type Output = Succ3<T>;
@@ -538,7 +535,7 @@ impl<T: AddBit> Encodable<T> for Imm3 {
 /// | `1110` | AL | Always true |
 /// | `1111` | Unused | N/A |
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Condition(pub u8);
+pub(crate) struct Condition(pub(crate) u8);
 
 impl<T: AddBit> Encodable<T> for Condition {
     type Output = Succ4<T>;

@@ -7,7 +7,7 @@
 //! version of `Result`, which holds the parsed data and the remaining input.
 
 use crate::{
-    op::{Imm3, Imm5, Imm7, Imm8, Op, Register, Condition},
+    op::{Condition, Imm3, Imm5, Imm7, Imm8, Op, Register},
     Result,
 };
 
@@ -699,14 +699,12 @@ fn parse_load_store_args(input: &str) -> ParsingResult<(Register, Imm8)> {
 
 /// Parses the arguments following an STR instruction.
 fn parse_str_args(input: &str) -> ParsingResult<Op> {
-    parse_load_store_args(input)
-        .map(|((rt, imm8), tail)| (Op::Str(rt, imm8), tail))
+    parse_load_store_args(input).map(|((rt, imm8), tail)| (Op::Str(rt, imm8), tail))
 }
 
 /// Parses the arguments following an LDR instruction.
 fn parse_ldr_args(input: &str) -> ParsingResult<Op> {
-    parse_load_store_args(input)
-        .map(|((rt, imm8), tail)| (Op::Ldr(rt, imm8), tail))
+    parse_load_store_args(input).map(|((rt, imm8), tail)| (Op::Ldr(rt, imm8), tail))
 }
 
 /// Parses the arguments following an ADD instruction.
@@ -1015,10 +1013,7 @@ mod tests {
             Op::AddSp(Imm7(101)),
         );
 
-        assert_eq!(
-            parse_op("add sp, #101").unwrap().0,
-            Op::AddSp(Imm7(101)),
-        );
+        assert_eq!(parse_op("add sp, #101").unwrap().0, Op::AddSp(Imm7(101)),);
     }
 
     #[test]
@@ -1028,10 +1023,7 @@ mod tests {
             Op::SubSp(Imm7(101)),
         );
 
-        assert_eq!(
-            parse_op("sub sp, #101").unwrap().0,
-            Op::SubSp(Imm7(101)),
-        );
+        assert_eq!(parse_op("sub sp, #101").unwrap().0, Op::SubSp(Imm7(101)),);
     }
 
     #[test]
@@ -1108,18 +1100,12 @@ mod tests {
 
     #[test]
     fn parse_bls() {
-        assert_eq!(
-            parse_op("bls #9").unwrap().0,
-            Op::B(Condition(9), Imm8(9)),
-        );
+        assert_eq!(parse_op("bls #9").unwrap().0, Op::B(Condition(9), Imm8(9)),);
     }
 
     #[test]
     fn parse_bge() {
-        assert_eq!(
-            parse_op("bge #0").unwrap().0,
-            Op::B(Condition(10), Imm8(0)),
-        );
+        assert_eq!(parse_op("bge #0").unwrap().0, Op::B(Condition(10), Imm8(0)),);
     }
 
     #[test]
@@ -1140,9 +1126,6 @@ mod tests {
 
     #[test]
     fn parse_ble() {
-        assert_eq!(
-            parse_op("ble #0").unwrap().0,
-            Op::B(Condition(13), Imm8(0)),
-        );
+        assert_eq!(parse_op("ble #0").unwrap().0, Op::B(Condition(13), Imm8(0)),);
     }
 }
