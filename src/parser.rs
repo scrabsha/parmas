@@ -181,56 +181,32 @@ fn arg_sep(input: &str) -> ParsingResult<()> {
 }
 
 fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rm, _, imm5), tail) = multiple5(
-        input,
-        register,
-        arg_sep,
-        register,
-        arg_sep,
-        imm5,
-    )?;
+    let ((rd, _, rm, _, imm5), tail) =
+        multiple5(input, register, arg_sep, register, arg_sep, imm5)?;
 
     let op = Op::LslI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rm, _, imm5), tail) = multiple5(
-        input,
-        register,
-        arg_sep,
-        register,
-        arg_sep,
-        imm5,
-    )?;
+    let ((rd, _, rm, _, imm5), tail) =
+        multiple5(input, register, arg_sep, register, arg_sep, imm5)?;
 
     let op = Op::LsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rm, _, imm5), tail) = multiple5(
-        input,
-        register,
-        arg_sep,
-        register,
-        arg_sep,
-        imm5,
-    )?;
+    let ((rd, _, rm, _, imm5), tail) =
+        multiple5(input, register, arg_sep, register, arg_sep, imm5)?;
 
     let op = Op::AsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 fn parse_adds_args(input: &str) -> ParsingResult<Op> {
-    let ((rd, _, rn, _, rm), tail) = multiple5(
-        input,
-        register,
-        arg_sep,
-        register,
-        arg_sep,
-        register,
-    )?;
+    let ((rd, _, rn, _, rm), tail) =
+        multiple5(input, register, arg_sep, register, arg_sep, register)?;
 
     let op = Op::AddR(rd, rn, rm);
     Ok((op, tail))
