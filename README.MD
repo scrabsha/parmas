@@ -57,7 +57,7 @@ $ cargo test
 | ORR (register) | ✔️ | ✔️ |
 | MUL | ✔️ | ✔️ |
 | BIC (register) | ✔️ | ✔️ |
-| MVN (register) | ❌ | ❌ |
+| MVN (register) | ✔️ | ✔️ |
 | STR (immediate) | ❌ | ❌ |
 | LDR (immediate) | ❌ | ❌ |
 | ADD (SP plus immediate) | ❌ | ❌ |

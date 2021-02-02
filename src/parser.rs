@@ -567,6 +567,14 @@ fn parse_bics_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an MVNS instruction.
+fn parse_mvns_args(input: &str) -> ParsingResult<Op> {
+    let ((rdn, rm), tail) = args2(input, register, register)?;
+
+    let op = Op::Mvn(rdn, rm);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -596,6 +604,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "orrs" => parse_orrs_args(tail),
         "muls" => parse_muls_args(tail),
         "bics" => parse_bics_args(tail),
+        "mvns" => parse_mvns_args(tail),
         _ => todo!(),
     }?;
 
@@ -795,6 +804,14 @@ mod tests {
         assert_eq!(
             parse_op("bics r4, r1, r4").unwrap().0,
             Op::Bic(Register::R4, Register::R1),
+        );
+    }
+
+    #[test]
+    fn parse_mvns() {
+        assert_eq!(
+            parse_op("mvns r4, r1, r4").unwrap().0,
+            Op::Mvn(Register::R4, Register::R1),
         );
     }
 }

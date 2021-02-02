@@ -295,6 +295,12 @@ impl<T: AddBit> Encodable<T> for &Op {
                 .then(*rm)
                 .then(*rdn),
 
+            Op::Mvn(rd, rm) => instruct
+                .then(DpHeader)
+                .then((true, true, true, true))
+                .then(*rm)
+                .then(*rd),
+
             _ => todo!(),
         }
     }
