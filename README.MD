@@ -59,7 +59,7 @@ $ cargo test
 | BIC (register) | ✔️ | ✔️ |
 | MVN (register) | ✔️ | ✔️ |
 | STR (immediate) | ✔️ | ✔️ |
-| LDR (immediate) | ❌ | ❌ |
+| LDR (immediate) | ✔️ | ✔️ |
 | ADD (SP plus immediate) | ❌ | ❌ |
 | SUB (SP minus immediate) | ❌ | ❌ |
 | B (conditional branche) | ❌ | ❌ |

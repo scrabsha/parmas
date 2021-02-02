@@ -631,12 +631,21 @@ fn parse_mvns_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments of the load and store forms.
+fn parse_load_store_args(input: &str) -> ParsingResult<(Register, Imm8)> {
+    args2(input, register, load_store_second_argument)
+}
+
 /// Parses the arguments following an STR instruction.
 fn parse_str_args(input: &str) -> ParsingResult<Op> {
-    let ((rt, imm8), tail) = args2(input, register, load_store_second_argument)?;
+    parse_load_store_args(input)
+        .map(|((rt, imm8), tail)| (Op::Str(rt, imm8), tail))
+}
 
-    let op = Op::Str(rt, imm8);
-    Ok((op, tail))
+/// Parses the arguments following an LDR instruction.
+fn parse_ldr_args(input: &str) -> ParsingResult<Op> {
+    parse_load_store_args(input)
+        .map(|((rt, imm8), tail)| (Op::Ldr(rt, imm8), tail))
 }
 
 /// Parses an operation from an input string.
@@ -670,6 +679,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "bics" => parse_bics_args(tail),
         "mvns" => parse_mvns_args(tail),
         "str" => parse_str_args(tail),
+        "ldr" => parse_ldr_args(tail),
         _ => todo!(),
     }?;
 
@@ -890,6 +900,19 @@ mod tests {
         assert_eq!(
             parse_op("str r4, [sp]").unwrap().0,
             Op::Str(Register::R4, Imm8(0)),
+        );
+    }
+
+    #[test]
+    fn parse_ldr() {
+        assert_eq!(
+            parse_op("ldr r4, [sp, #101]").unwrap().0,
+            Op::Ldr(Register::R4, Imm8(101)),
+        );
+
+        assert_eq!(
+            parse_op("ldr r4, [sp]").unwrap().0,
+            Op::Ldr(Register::R4, Imm8(0)),
         );
     }
 }

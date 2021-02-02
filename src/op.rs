@@ -316,6 +316,8 @@ impl<T: AddBit> Encodable<T> for &Op {
 
             Op::Str(rt, imm8) => instruct.then(LsHeader).then(false).then(*rt).then(*imm8),
 
+            Op::Ldr(rt, imm8) => instruct.then(LsHeader).then(true).then(*rt).then(*imm8),
+
             _ => todo!(),
         }
     }
