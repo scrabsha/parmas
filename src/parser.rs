@@ -177,7 +177,7 @@ fn comma(input: &str) -> ParsingResult<()> {
     }
 }
 
-fn comma_and_maybe_whitespaces(input: &str) -> ParsingResult<()> {
+fn arg_sep(input: &str) -> ParsingResult<()> {
     let (_, tail) = comma(input)?;
     Ok(((), whitespaces_opt(tail)))
 }
@@ -186,9 +186,9 @@ fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
     let ((rd, _, rm, _, imm5), tail) = multiple5(
         input,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         imm5,
     )?;
 
@@ -200,9 +200,9 @@ fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
     let ((rd, _, rm, _, imm5), tail) = multiple5(
         input,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         imm5,
     )?;
 
@@ -214,9 +214,9 @@ fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
     let ((rd, _, rm, _, imm5), tail) = multiple5(
         input,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         imm5,
     )?;
 
@@ -228,9 +228,9 @@ fn parse_adds_args(input: &str) -> ParsingResult<Op> {
     let ((rd, _, rn, _, rm), tail) = multiple5(
         input,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         register,
-        comma_and_maybe_whitespaces,
+        arg_sep,
         register,
     )?;
 
