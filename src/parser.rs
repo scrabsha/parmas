@@ -392,6 +392,13 @@ fn parse_tsts_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+fn parse_rsbs_args(input: &str) -> ParsingResult<Op> {
+    let ((rdn, rm), tail) = args2(input, register, register)?;
+
+    let op = Op::Rsb(rdn, rm);
+    Ok((op, tail))
+}
+
 pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
     let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
 
@@ -410,6 +417,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "sbcs" => parse_sbcs_args(tail),
         "rors" => parse_rors_args(tail),
         "tsts" => parse_tsts_args(tail),
+        "rsbs" => parse_rsbs_args(tail),
         _ => todo!(),
     }
 }
@@ -550,6 +558,14 @@ mod tests {
         assert_eq!(
             parse_op("tsts r4, r1").unwrap().0,
             Op::Tst(Register::R4, Register::R1),
+        );
+    }
+
+    #[test]
+    fn parse_rsbs() {
+        assert_eq!(
+            parse_op("rsbs r4, r1").unwrap().0,
+            Op::Rsb(Register::R4, Register::R1),
         );
     }
 }
