@@ -76,10 +76,41 @@ impl Encodable for &Op {
 
             Op::AddR(rd, rn, rm) => instruct
                 .then((false, false, false))
-                .then((true, true, false, false))
+                .then((true, true))
+                .then((false, false))
                 .then(*rm)
                 .then(*rn)
                 .then(*rd),
+
+            Op::SubR(rd, rn, rm) => instruct
+                .then((false, false, false))
+                .then((true, true))
+                .then((false, true))
+                .then(*rm)
+                .then(*rn)
+                .then(*rd),
+
+            Op::AddI(rd, rn, imm3) => instruct
+                .then((false, false, false))
+                .then((true, true))
+                .then((true, false))
+                .then(*imm3)
+                .then(*rn)
+                .then(*rd),
+
+            Op::SubI(rd, rn, imm3) => instruct
+                .then((false, false, false))
+                .then((true, true))
+                .then((true, true))
+                .then(*imm3)
+                .then(*rn)
+                .then(*rd),
+
+            Op::MovI(rd, imm8) => instruct
+                .then((false, false, true))
+                .then((false, false))
+                .then(*rd)
+                .then(*imm8),
 
             _ => todo!(),
         }
@@ -139,6 +170,28 @@ impl Encodable for Imm5 {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm8(pub usize);
 
+impl Encodable for Imm8 {
+    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+        let v = self.0;
+        let (hi, lo) = (
+            (
+                v & 0b10000000 != 0,
+                v & 0b01000000 != 0,
+                v & 0b00100000 != 0,
+                v & 0b00010000 != 0,
+            ),
+            (
+                v & 0b00001000 != 0,
+                v & 0b00000100 != 0,
+                v & 0b00000010 != 0,
+                v & 0b00000001 != 0,
+            ),
+        );
+
+        instruct.then(hi).then(lo)
+    }
+}
+
 // Must be < 128
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm7(pub usize);
@@ -146,6 +199,15 @@ pub struct Imm7(pub usize);
 // Must be < 8
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm3(pub usize);
+
+impl Encodable for Imm3 {
+    fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
+        let v = self.0;
+        let bits = (v & 0b100 != 0, v & 0b010 != 0, v & 0b001 != 0);
+
+        instruct.then(bits)
+    }
+}
 
 // Must be < 15
 #[derive(Clone, Copy, Debug, PartialEq)]
