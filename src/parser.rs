@@ -692,6 +692,14 @@ fn parse_add_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an SUB instruction.
+fn parse_sub_args(input: &str) -> ParsingResult<Op> {
+    let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, imm7)?;
+
+    let op = Op::SubSp(imm7);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -725,6 +733,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "str" => parse_str_args(tail),
         "ldr" => parse_ldr_args(tail),
         "add" => parse_add_args(tail),
+        "sub" => parse_sub_args(tail),
         _ => todo!(),
     }?;
 
@@ -971,6 +980,19 @@ mod tests {
         assert_eq!(
             parse_op("add sp, #101").unwrap().0,
             Op::AddSp(Imm7(101)),
+        );
+    }
+
+    #[test]
+    fn parse_sub() {
+        assert_eq!(
+            parse_op("sub sp, sp, #101").unwrap().0,
+            Op::SubSp(Imm7(101)),
+        );
+
+        assert_eq!(
+            parse_op("sub sp, #101").unwrap().0,
+            Op::SubSp(Imm7(101)),
         );
     }
 }

@@ -61,7 +61,7 @@ $ cargo test
 | STR (immediate) | ✔️ | ✔️ |
 | LDR (immediate) | ✔️ | ✔️ |
 | ADD (SP plus immediate) | ✔️ | ✔️ |
-| SUB (SP minus immediate) | ❌ | ❌ |
+| SUB (SP minus immediate) | ✔️ | ✔️ |
 | B (conditional branche) | ❌ | ❌ |
 
 Clipboard helper: `✔️❌`

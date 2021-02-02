@@ -336,6 +336,11 @@ impl<T: AddBit> Encodable<T> for &Op {
                 .then((false,false, false, false, false))
                 .then(*imm7),
 
+            Op::SubSp(imm7) => instruct
+                .then(MHeader)
+                .then((false,false, false, false, true))
+                .then(*imm7),
+
             _ => todo!(),
         }
     }
