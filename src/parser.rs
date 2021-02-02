@@ -23,9 +23,9 @@ where
     A: 'a,
     B: 'a,
     C: 'a,
-    F: Fn(&str) -> ParsingResult<A>,
-    G: Fn(&str) -> ParsingResult<B>,
-    H: Fn(&str) -> ParsingResult<C>,
+    F: Fn(&'a str) -> ParsingResult<A>,
+    G: Fn(&'a str) -> ParsingResult<B>,
+    H: Fn(&'a str) -> ParsingResult<C>,
 {
     let ((a, b), tail) = multiple2(input, f, g)?;
     let (c, tail) = h(tail)?;
@@ -47,11 +47,11 @@ where
     C: 'a,
     D: 'a,
     E: 'a,
-    F: Fn(&str) -> ParsingResult<A>,
-    G: Fn(&str) -> ParsingResult<B>,
-    H: Fn(&str) -> ParsingResult<C>,
-    I: Fn(&str) -> ParsingResult<D>,
-    J: Fn(&str) -> ParsingResult<E>,
+    F: Fn(&'a str) -> ParsingResult<A>,
+    G: Fn(&'a str) -> ParsingResult<B>,
+    H: Fn(&'a str) -> ParsingResult<C>,
+    I: Fn(&'a str) -> ParsingResult<D>,
+    J: Fn(&'a str) -> ParsingResult<E>,
 {
     let ((a, b, c), tail) = multiple3(input, f, g, h)?;
     let ((d, e), tail) = multiple2(tail, i, j)?;
@@ -76,9 +76,9 @@ fn whitespaces(input: &str) -> ParsingResult<()> {
     }
 }
 
-fn whitespaces_opt(input: &str) -> &str {
+fn whitespaces_opt(input: &str) -> ParsingResult<()> {
     let idx = whitespaces_split_idx(input);
-    input.split_at(idx).1
+    Ok(((), input.split_at(idx).1))
 }
 
 fn symbol(input: &str) -> ParsingResult<&str> {
@@ -111,7 +111,7 @@ fn register_id(input: char) -> Result<Register> {
 fn register(input: &str) -> ParsingResult<Register> {
     let mut crs = input.char_indices();
 
-    match dbg!(crs.next()) {
+    match crs.next() {
         Some((_, 'r')) => {}
         None => return Err("Expected register name, found EOF"),
         Some(_) => return Err("Expected register name"),
@@ -126,8 +126,6 @@ fn register(input: &str) -> ParsingResult<Register> {
 
 fn lit(input: &str) -> ParsingResult<usize> {
     let mut crs = input.char_indices();
-
-    dbg!(crs.as_str());
 
     match crs.next() {
         Some((_, '#')) => {}
@@ -178,8 +176,8 @@ fn comma(input: &str) -> ParsingResult<()> {
 }
 
 fn arg_sep(input: &str) -> ParsingResult<()> {
-    let (_, tail) = comma(input)?;
-    Ok(((), whitespaces_opt(tail)))
+    let ((_, _), tail) = multiple2(input, comma, whitespaces_opt)?;
+    Ok(((), tail))
 }
 
 fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
@@ -239,7 +237,7 @@ fn parse_adds_args(input: &str) -> ParsingResult<Op> {
 }
 
 pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
-    let ((opcode, _), tail) = multiple2(input, symbol, whitespaces)?;
+    let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
 
     let opcode = opcode.to_lowercase();
 
