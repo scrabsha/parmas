@@ -1,9 +1,9 @@
 use std::env;
 use std::fs;
 
+mod encoder;
 pub mod op;
 pub mod parser;
-mod encoder;
 
 pub type Result<T> = std::result::Result<T, &'static str>;
 
@@ -20,7 +20,7 @@ fn main() -> Result<()> {
     while !tail.is_empty() {
         let (op, rest) = parser::parse_op(tail)?;
         tail = rest;
-        println!("{:?}", op);
+        print!("{} ", op.encode());
     }
 
     Ok(())

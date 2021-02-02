@@ -1,4 +1,4 @@
-use crate::encoder::{Encodable, InstructionEncoder};
+use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Op {
@@ -42,15 +42,45 @@ pub enum Op {
     B(Condition, String),
 }
 
+impl Op {
+    pub(crate) fn encode(&self) -> EncodedInstruction {
+        InstructionEncoder::new()
+            .then(self)
+            .into_to_encoded_instruction()
+    }
+}
+
 impl Encodable for &Op {
     fn encode(self, instruct: InstructionEncoder) -> InstructionEncoder {
         match self {
             Op::LslI(rd, rm, imm5) => instruct
                 .then((false, false, false))
-                .then((false, false, false))
+                .then((false, false))
                 .then(*rd)
                 .then(*rm)
                 .then(*imm5),
+
+            Op::LsrI(rd, rm, imm5) => instruct
+                .then((false, false, false))
+                .then((false, true))
+                .then(*imm5)
+                .then(*rm)
+                .then(*rd),
+
+            Op::AsrI(rd, rm, imm5) => instruct
+                .then((false, false, false))
+                .then((true, false))
+                .then(*imm5)
+                .then(*rm)
+                .then(*rd),
+
+            Op::AddR(rd, rn, rm) => instruct
+                .then((false, false, false))
+                .then((true, true, false, false))
+                .then(*rm)
+                .then(*rn)
+                .then(*rd),
+
             _ => todo!(),
         }
     }
