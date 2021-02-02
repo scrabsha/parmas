@@ -896,7 +896,7 @@ fn op(input: &str) -> ParsingResult<RawOp> {
         "tst" => parse_tsts_args(tail),
         "rsbs" => parse_rsbs_args(tail),
         "cmp" => parse_cmps_args(tail),
-        "cmns" => parse_cmns_args(tail),
+        "cmn" => parse_cmns_args(tail),
         "orrs" => parse_orrs_args(tail),
         "muls" => parse_muls_args(tail),
         "bics" => parse_bics_args(tail),
@@ -1091,7 +1091,7 @@ mod tests {
     #[test]
     fn parse_cmns() {
         assert_eq!(
-            op("cmns r4, r1").unwrap().0,
+            op("cmn r4, r1").unwrap().0,
             RawOp::Cmn(Register::R4, Register::R1),
         );
     }
