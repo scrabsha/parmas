@@ -187,12 +187,25 @@ fn arg_sep(input: &str) -> ParsingResult<()> {
     Ok(((), tail))
 }
 
-fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsls_immediate_args(input: &str) -> ParsingResult<Op> {
     let ((rd, _, rm, _, imm5), tail) =
         multiple5(input, register, arg_sep, register, arg_sep, imm5)?;
 
     let op = Op::LslI(rd, rm, imm5);
     Ok((op, tail))
+}
+
+fn parse_lsls_register_args(input: &str) -> ParsingResult<Op> {
+    let ((rdn, _, rm), tail) =
+        multiple3(input, register, arg_sep, register)?;
+
+    let op = Op::LslR(rdn, rm);
+    Ok((op, tail))
+}
+
+fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
+    parse_lsls_immediate_args(input)
+        .or_else(|_| parse_lsls_register_args(input))
 }
 
 fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
@@ -285,6 +298,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "movs" => parse_movs_args(tail),
         "ands" => parse_ands_args(tail),
         "eors" => parse_eors_args(tail),
+        "lsls" => parse_lsls_args(tail),
         _ => todo!(),
     }
 }
@@ -298,6 +312,11 @@ mod tests {
         assert_eq!(
             parse_op("lsls r4, r2, #12").unwrap().0,
             Op::LslI(Register::R4, Register::R2, Imm5(12)),
+        );
+
+        assert_eq!(
+            parse_op("lsls r4, r2").unwrap().0,
+            Op::LslR(Register::R4, Register::R2),
         );
     }
 
