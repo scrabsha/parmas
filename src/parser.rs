@@ -210,6 +210,34 @@ fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, rm, _, imm5), tail) = multiple5(
+        input,
+        register,
+        comma_and_maybe_whitespaces,
+        register,
+        comma_and_maybe_whitespaces,
+        imm5,
+    )?;
+
+    let op = Op::AsrI(rd, rm, imm5);
+    Ok((op, tail))
+}
+
+fn parse_adds_args(input: &str) -> ParsingResult<Op> {
+    let ((rd, _, rn, _, rm), tail) = multiple5(
+        input,
+        register,
+        comma_and_maybe_whitespaces,
+        register,
+        comma_and_maybe_whitespaces,
+        register,
+    )?;
+
+    let op = Op::AddR(rd, rn, rm);
+    Ok((op, tail))
+}
+
 pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
     let ((opcode, _), tail) = multiple2(input, symbol, whitespaces)?;
 
@@ -218,6 +246,8 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
     match opcode.as_str() {
         "lsls" => parse_lsls_args(tail),
         "lsrs" => parse_lsrs_args(tail),
+        "asrs" => parse_asrs_args(tail),
+        "adds" => parse_adds_args(tail),
         _ => todo!(),
     }
 }
@@ -239,6 +269,22 @@ mod tests {
         assert_eq!(
             parse_op("lsrs r4, r2, #12").unwrap().0,
             Op::LsrI(Register::R4, Register::R2, Imm5(12)),
+        );
+    }
+
+    #[test]
+    fn parse_op_asr_immediate() {
+        assert_eq!(
+            parse_op("asrs r4, r2, #12").unwrap().0,
+            Op::AsrI(Register::R4, Register::R2, Imm5(12)),
+        );
+    }
+
+    #[test]
+    fn parse_op_adds_register() {
+        assert_eq!(
+            parse_op("adds r4, r2, r0").unwrap().0,
+            Op::AddR(Register::R4, Register::R2, Register::R0),
         );
     }
 }
