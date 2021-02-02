@@ -156,7 +156,7 @@ impl InstructionEncoder<T10> {
 
 /// Represents an encoded instruction.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct EncodedInstruction(u16);
+pub(crate) struct EncodedInstruction(pub(crate) u16);
 
 impl fmt::Display for EncodedInstruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

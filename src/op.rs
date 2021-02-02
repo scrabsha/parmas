@@ -553,3 +553,44 @@ impl<T: AddBit> Encodable<T> for Condition {
         instruct.then(bits)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Encodes an `Op` to an `EncodedInstruction`, and compares it against
+    /// an expected value.
+    macro_rules! assert_encoding {
+        ($op:expr, $encoded:expr $(,)? ) => {{
+            let left = $op.encode().0;
+            let right = $encoded;
+
+            assert_eq!(left, right);
+        }};
+    }
+
+    /// Expands to several tests, which compare an Op to a final encoded value.
+    /// See the documentation of `assert_encoding` for more.
+    macro_rules! tests {
+        ($(
+            $name:ident :: $op:expr => $encoded:expr
+        ),* $(,)?) => {
+            $(
+                #[test]
+                fn $name() {
+                    let left = $op;
+                    let right = $encoded;
+                    assert_encoding!(left, right);
+                }
+            )*
+        }
+    }
+
+    tests! {
+        sub_sp_12_encoding :: Op::SubSp(Imm7(12)) => 0xb08c,
+        movs_r0_0_encoding :: Op::MovI(Register::R0, Imm8(0)) => 0x2000,
+        str_r0_sp_8_encoding :: Op::Str(Register::R0, Imm8(8)) => 0x9008,
+        movs_r1_1 :: Op::MovI(Register::R1, Imm8(1)) => 0x2101,
+        str_r1_sp_4_encoding :: Op::Str(Register::R1, Imm8(4)) => 0x9104,
+    }
+}
