@@ -30,6 +30,40 @@ issue:
 $ cargo test
 ```
 
+## Instrunction table
 
+| Instruction | Parsing | Encoding |
+| ----------- | ------- | -------- |
+| LSL (immediate) | ✔️ | ✔️ |
+| LSR (immediate) | ✔️ | ✔️ |
+| ASR (immediate) | ✔️ | ✔️ |
+| ADD (register) | ✔️ | ✔️ |
+| SUB (register) | ✔️ | ✔️ |
+| ADD (immediate) | ✔️ | ✔️ |
+| SUB (immediate) | ✔️ | ✔️ |
+| MOV (immediate) | ✔️ | ✔️ |
+| AND (register) | ✔️ | ✔️ |
+| EOR (register) | ✔️ | ✔️ |
+| LSL (register) | ✔️ | ✔️ |
+| LSR (register) | ✔️ | ✔️ |
+| ASR (register) | ✔️ | ❌ |
+| ADC (register) | ❌ | ❌ |
+| SBC (register) | ❌ | ❌ |
+| ROR (register) | ❌ | ❌ |
+| TST (register) | ❌ | ❌ |
+| RSB (immediate) | ❌ | ❌ |
+| CMP (register) | ❌ | ❌ |
+| CMN (register) | ❌ | ❌ |
+| ORR (register) | ❌ | ❌ |
+| MUL | ❌ | ❌ |
+| BIC (register) | ❌ | ❌ |
+| MVN (register) | ❌ | ❌ |
+| STR (immediate) | ❌ | ❌ |
+| LDR (immediate) | ❌ | ❌ |
+| ADD (SP plus immediate) | ❌ | ❌ |
+| SUB (SP minus immediate) | ❌ | ❌ |
+| B (conditional branche) | ❌ | ❌ |
+
+Clipboard helper: `✔️❌`
 
 [rustup]: https://rustup.rs
