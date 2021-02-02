@@ -1,10 +1,10 @@
-use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder, Succ2, Succ3, Succ5, Succ6, Succ8, Succ10};
+use crate::encoder::{Encodable, EncodedInstruction, InstructionEncoder, Succ2, Succ3, Succ5, Succ6, Succ8, Succ10, AddBit};
 
 // The shift, add, sub, mov opcodes header, section 10.1.1.
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct SasmHeader;
 
-impl<T> Encodable<T> for SasmHeader {
+impl<T: AddBit> Encodable<T> for SasmHeader {
     type Output = Succ2<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
@@ -16,7 +16,7 @@ impl<T> Encodable<T> for SasmHeader {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct DpHeader;
 
-impl<T> Encodable<T> for DpHeader {
+impl<T: AddBit> Encodable<T> for DpHeader {
     type Output = Succ6<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
@@ -80,7 +80,7 @@ impl Op {
     }
 }
 
-impl<T> Encodable<T> for &Op {
+impl<T: AddBit> Encodable<T> for &Op {
     type Output = Succ10<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
@@ -227,7 +227,7 @@ pub enum Register {
     R7,
 }
 
-impl<T> Encodable<T> for Register {
+impl<T: AddBit> Encodable<T> for Register {
     type Output = Succ3<T>;
 
     fn encode(self, instr: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
@@ -251,7 +251,7 @@ impl<T> Encodable<T> for Register {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm5(pub usize);
 
-impl<T> Encodable<T> for Imm5 {
+impl<T: AddBit> Encodable<T> for Imm5 {
     type Output = Succ5<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
@@ -272,7 +272,7 @@ impl<T> Encodable<T> for Imm5 {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm8(pub usize);
 
-impl<T> Encodable<T> for Imm8 {
+impl<T: AddBit> Encodable<T> for Imm8 {
     type Output = Succ8<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
@@ -304,7 +304,7 @@ pub struct Imm7(pub usize);
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm3(pub usize);
 
-impl<T> Encodable<T> for Imm3 {
+impl<T: AddBit> Encodable<T> for Imm3 {
     type Output = Succ3<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
