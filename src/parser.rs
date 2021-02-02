@@ -371,6 +371,13 @@ fn parse_adcs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+fn parse_sbcs_args(input: &str) -> ParsingResult<Op> {
+    let ((rdn, rm), tail) = args2(input, register, register)?;
+
+    let op = Op::SbcR(rdn, rm);
+    Ok((op, tail))
+}
+
 pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
     let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
 
@@ -386,6 +393,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "ands" => parse_ands_args(tail),
         "eors" => parse_eors_args(tail),
         "adcs" => parse_adcs_args(tail),
+        "sbcs" => parse_sbcs_args(tail),
         _ => todo!(),
     }
 }
@@ -502,6 +510,14 @@ mod tests {
         assert_eq!(
             parse_op("adcs r4, r1").unwrap().0,
             Op::AdcR(Register::R4, Register::R1),
+        );
+    }
+
+    #[test]
+    fn parse_sbcs() {
+        assert_eq!(
+            parse_op("sbcs r4, r1").unwrap().0,
+            Op::SbcR(Register::R4, Register::R1),
         );
     }
 }

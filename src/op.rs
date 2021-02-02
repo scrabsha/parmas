@@ -167,10 +167,16 @@ impl Encodable for &Op {
                 .then((false, true, false, false))
                 .then(*rm)
                 .then(*rdn),
-            
+
             Op::AdcR(rdn, rm) => instruct
                 .then(DpHeader)
                 .then((false, true, false, true))
+                .then(*rm)
+                .then(*rdn),
+
+            Op::SbcR(rdn, rm) => instruct
+                .then(DpHeader)
+                .then((false, true, true, false))
                 .then(*rm)
                 .then(*rdn),
 
