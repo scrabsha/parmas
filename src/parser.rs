@@ -7,7 +7,7 @@
 //! version of `Result`, which holds the parsed data and the remaining input.
 
 use crate::{
-    op::{Condition, Imm3, Imm5, Imm7, Imm8, Op, Register},
+    op::{Condition, Imm3, Imm5, Imm7, Imm8, RawOp, Register},
     Result,
 };
 
@@ -394,24 +394,63 @@ fn sp(input: &str) -> ParsingResult<()> {
     }
 }
 
+/// Eats a single expected char from an input string.
+///
+/// If `input` does not start with `c`, then `None` is returned. Otherwise,
+/// the input tail is returned.
+fn eat_char(input: &str, c: char) -> Option<&str> {
+    if input.starts_with(c) {
+        let (_, tail) = input.split_at(1);
+        Some(tail)
+    } else {
+        None
+    }
+}
+
 /// Parses a left bracket (`[`).
 fn left_bracket(input: &str) -> ParsingResult<()> {
-    if input.starts_with('[') {
-        let (_, tail) = input.split_at(1);
-        Ok(((), tail))
-    } else {
-        Err("Expected `[`")
-    }
+    eat_char(input, '[')
+        .map(|tail| ((), tail))
+        .ok_or("Expected `[`")
 }
 
 /// Parses a right bracket (`]`).
 fn right_bracket(input: &str) -> ParsingResult<()> {
-    if input.starts_with(']') {
-        let (_, tail) = input.split_at(1);
-        Ok(((), tail))
+    eat_char(input, ']')
+        .map(|tail| ((), tail))
+        .ok_or("Expected `]`")
+}
+
+/// Parses a colon (`:`).
+fn colon(input: &str) -> ParsingResult<()> {
+    eat_char(input, ':')
+        .map(|tail| ((), tail))
+        .ok_or("Expected `:`")
+}
+
+/// Parses a label identifier.
+///
+/// A label idenfitier is an optional dot, followed by one or more alphanumeric
+/// characters, and `_`.
+fn label_identifier(input: &str) -> ParsingResult<&str> {
+    let (tail, init_length) = if input.starts_with('.') {
+        (input.split_at(1).1, 1)
     } else {
-        Err("Expected `]`")
+        (input, 0)
+    };
+
+    let rest_split_idx = tail
+        .char_indices()
+        .find(|(_, c)| !c.is_alphanumeric() && *c != '_')
+        .map(|(idx, _)| idx)
+        .unwrap_or_else(|| tail.len());
+
+    if rest_split_idx < 1 {
+        return Err("Expected label");
     }
+
+    let (label, tail) = input.split_at(init_length + rest_split_idx);
+    Ok((label, tail))
 }
 
 /// Returns the condition number corresponding to a branch instruction.
@@ -472,223 +511,223 @@ fn load_store_second_argument(input: &str) -> ParsingResult<Imm8> {
 }
 
 /// Parses the arguments following an LSLS (immediate) instruction.
-fn parse_lsls_immediate_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsls_immediate_args(input: &str) -> ParsingResult<RawOp> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
-    let op = Op::LslI(rd, rm, imm5);
+    let op = RawOp::LslI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an LSLS (register) instruction.
-fn parse_lsls_register_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsls_register_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::LslR(rdn, rm);
+    let op = RawOp::LslR(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an LSLS (any form) instruction.
-fn parse_lsls_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsls_args(input: &str) -> ParsingResult<RawOp> {
     parse_lsls_immediate_args(input).or_else(|_| parse_lsls_register_args(input))
 }
 
 /// Parses the arguments following an LSRS (immediate) instruction.
-fn parse_lsrs_immediate_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsrs_immediate_args(input: &str) -> ParsingResult<RawOp> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
-    let op = Op::LsrI(rd, rm, imm5);
+    let op = RawOp::LsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an LSRS (register) instruction.
-fn parse_lsrs_register_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsrs_register_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::LsrR(rdn, rm);
+    let op = RawOp::LsrR(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an LSRS (any form) instruction.
-fn parse_lsrs_args(input: &str) -> ParsingResult<Op> {
+fn parse_lsrs_args(input: &str) -> ParsingResult<RawOp> {
     parse_lsrs_immediate_args(input).or_else(|_| parse_lsrs_register_args(input))
 }
 
 /// Parses the arguments following an ASRS (immediate) instruction.
-fn parse_asrs_args_immediate(input: &str) -> ParsingResult<Op> {
+fn parse_asrs_args_immediate(input: &str) -> ParsingResult<RawOp> {
     let ((rd, rm, imm5), tail) = args3(input, register, register, imm5)?;
 
-    let op = Op::AsrI(rd, rm, imm5);
+    let op = RawOp::AsrI(rd, rm, imm5);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an ASRS (register) instruction.
-fn parse_asrs_args_register(input: &str) -> ParsingResult<Op> {
+fn parse_asrs_args_register(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::AsrR(rdn, rm);
+    let op = RawOp::AsrR(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an ASRS (any form) instruction.
-fn parse_asrs_args(input: &str) -> ParsingResult<Op> {
+fn parse_asrs_args(input: &str) -> ParsingResult<RawOp> {
     parse_asrs_args_immediate(input).or_else(|_| parse_asrs_args_register(input))
 }
 
 /// Parses the arguments following an ADDS (register) instruction.
-fn parse_adds_register_args(input: &str) -> ParsingResult<Op> {
+fn parse_adds_register_args(input: &str) -> ParsingResult<RawOp> {
     let ((rd, rn, rm), tail) = args3(input, register, register, register)?;
 
-    let op = Op::AddR(rd, rn, rm);
+    let op = RawOp::AddR(rd, rn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an ADDS (immediate) instruction.
-fn parse_adds_immediate_args(input: &str) -> ParsingResult<Op> {
+fn parse_adds_immediate_args(input: &str) -> ParsingResult<RawOp> {
     let ((rd, rn, rm), tail) = args3(input, register, register, imm3)?;
 
-    let op = Op::AddI(rd, rn, rm);
+    let op = RawOp::AddI(rd, rn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an ADDS (any form) instruction.
-fn parse_adds_args(input: &str) -> ParsingResult<Op> {
+fn parse_adds_args(input: &str) -> ParsingResult<RawOp> {
     parse_adds_register_args(input).or_else(|_| parse_adds_immediate_args(input))
 }
 
 /// Parses the arguments following an SUBS (register) instruction.
-fn parse_subs_register_args(input: &str) -> ParsingResult<Op> {
+fn parse_subs_register_args(input: &str) -> ParsingResult<RawOp> {
     let ((rd, rn, rm), tail) = args3(input, register, register, register)?;
 
-    let op = Op::SubR(rd, rn, rm);
+    let op = RawOp::SubR(rd, rn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an SUBS (immediate) instruction.
-fn parse_subs_immediate_args(input: &str) -> ParsingResult<Op> {
+fn parse_subs_immediate_args(input: &str) -> ParsingResult<RawOp> {
     let ((rd, rn, imm3), tail) = args3(input, register, register, imm3)?;
 
-    let op = Op::SubI(rd, rn, imm3);
+    let op = RawOp::SubI(rd, rn, imm3);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an SUBS (any form) instruction.
-fn parse_subs_args(input: &str) -> ParsingResult<Op> {
+fn parse_subs_args(input: &str) -> ParsingResult<RawOp> {
     parse_subs_register_args(input).or_else(|_| parse_subs_immediate_args(input))
 }
 
 /// Parses the arguments following an MOVS instruction.
-fn parse_movs_args(input: &str) -> ParsingResult<Op> {
+fn parse_movs_args(input: &str) -> ParsingResult<RawOp> {
     let ((rd, imm8), tail) = args2(input, register, imm8)?;
 
-    let op = Op::MovI(rd, imm8);
+    let op = RawOp::MovI(rd, imm8);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an ANDS instruction.
-fn parse_ands_args(input: &str) -> ParsingResult<Op> {
+fn parse_ands_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::And(rdn, rm);
+    let op = RawOp::And(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an EORS instruction.
-fn parse_eors_args(input: &str) -> ParsingResult<Op> {
+fn parse_eors_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Eor(rdn, rm);
+    let op = RawOp::Eor(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an ADCS instruction.
-fn parse_adcs_args(input: &str) -> ParsingResult<Op> {
+fn parse_adcs_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::AdcR(rdn, rm);
+    let op = RawOp::AdcR(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an SBCS instruction.
-fn parse_sbcs_args(input: &str) -> ParsingResult<Op> {
+fn parse_sbcs_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::SbcR(rdn, rm);
+    let op = RawOp::SbcR(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an RORS instruction.
-fn parse_rors_args(input: &str) -> ParsingResult<Op> {
+fn parse_rors_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::RorR(rdn, rm);
+    let op = RawOp::RorR(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an TSTS instruction.
-fn parse_tsts_args(input: &str) -> ParsingResult<Op> {
+fn parse_tsts_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Tst(rdn, rm);
+    let op = RawOp::Tst(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an RSBS instruction.
-fn parse_rsbs_args(input: &str) -> ParsingResult<Op> {
+fn parse_rsbs_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Rsb(rdn, rm);
+    let op = RawOp::Rsb(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an CMPS instruction.
-fn parse_cmps_args(input: &str) -> ParsingResult<Op> {
+fn parse_cmps_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Cmp(rdn, rm);
+    let op = RawOp::Cmp(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an CMNS instruction.
-fn parse_cmns_args(input: &str) -> ParsingResult<Op> {
+fn parse_cmns_args(input: &str) -> ParsingResult<RawOp> {
     let ((rn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Cmn(rn, rm);
+    let op = RawOp::Cmn(rn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an ORRS instruction.
-fn parse_orrs_args(input: &str) -> ParsingResult<Op> {
+fn parse_orrs_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Orr(rdn, rm);
+    let op = RawOp::Orr(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an MULS instruction.
-fn parse_muls_args(input: &str) -> ParsingResult<Op> {
+fn parse_muls_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdm, rn, rdm2), tail) = args3(input, register, register, register)?;
 
     if rdm != rdm2 {
         return Err("Wrong repeated register");
     }
 
-    let op = Op::Mul(rdm, rn);
+    let op = RawOp::Mul(rdm, rn);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an BICS instruction.
-fn parse_bics_args(input: &str) -> ParsingResult<Op> {
+fn parse_bics_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Bic(rdn, rm);
+    let op = RawOp::Bic(rdn, rm);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an MVNS instruction.
-fn parse_mvns_args(input: &str) -> ParsingResult<Op> {
+fn parse_mvns_args(input: &str) -> ParsingResult<RawOp> {
     let ((rdn, rm), tail) = args2(input, register, register)?;
 
-    let op = Op::Mvn(rdn, rm);
+    let op = RawOp::Mvn(rdn, rm);
     Ok((op, tail))
 }
 
@@ -698,28 +737,28 @@ fn parse_load_store_args(input: &str) -> ParsingResult<(Register, Imm8)> {
 }
 
 /// Parses the arguments following an STR instruction.
-fn parse_str_args(input: &str) -> ParsingResult<Op> {
-    parse_load_store_args(input).map(|((rt, imm8), tail)| (Op::Str(rt, imm8), tail))
+fn parse_str_args(input: &str) -> ParsingResult<RawOp> {
+    parse_load_store_args(input).map(|((rt, imm8), tail)| (RawOp::Str(rt, imm8), tail))
 }
 
 /// Parses the arguments following an LDR instruction.
-fn parse_ldr_args(input: &str) -> ParsingResult<Op> {
-    parse_load_store_args(input).map(|((rt, imm8), tail)| (Op::Ldr(rt, imm8), tail))
+fn parse_ldr_args(input: &str) -> ParsingResult<RawOp> {
+    parse_load_store_args(input).map(|((rt, imm8), tail)| (RawOp::Ldr(rt, imm8), tail))
 }
 
 /// Parses the arguments following an ADD instruction.
-fn parse_add_args(input: &str) -> ParsingResult<Op> {
+fn parse_add_args(input: &str) -> ParsingResult<RawOp> {
     let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, imm7)?;
 
-    let op = Op::AddSp(imm7);
+    let op = RawOp::AddSp(imm7);
     Ok((op, tail))
 }
 
 /// Parses the arguments following an SUB instruction.
-fn parse_sub_args(input: &str) -> ParsingResult<Op> {
+fn parse_sub_args(input: &str) -> ParsingResult<RawOp> {
     let ((_, _, _, imm7), tail) = multiple4(input, sp, arg_sep, sp_arg_opt, imm7)?;
 
-    let op = Op::SubSp(imm7);
+    let op = RawOp::SubSp(imm7);
     Ok((op, tail))
 }
 
@@ -727,12 +766,39 @@ fn parse_sub_args(input: &str) -> ParsingResult<Op> {
 ///
 /// This function also takes the branch instruction in order to guess which
 /// condition is branched.
-fn parse_b_args<'a>(opcode: &str, tail: &'a str) -> ParsingResult<'a, Op> {
+fn parse_b_args<'a>(opcode: &str, tail: &'a str) -> ParsingResult<'a, RawOp<'a>> {
     let cond = branch_condition(opcode)?;
-    let (imm8, tail) = imm8(tail)?;
+    let (label, tail) = label_identifier(tail)?;
 
-    let op = Op::B(cond, imm8);
+    let op = RawOp::B(cond, label);
     Ok((op, tail))
+}
+
+/// Parses a label from an input string.
+fn label(input: &str) -> Option<(&str, &str)> {
+    multiple5(
+        input,
+        whitespaces_opt,
+        label_identifier,
+        whitespaces_opt,
+        colon,
+        whitespaces_opt,
+    )
+    .ok()
+    .map(|((_, label, _, _, _), tail)| (label, tail))
+}
+
+/// Parses any number of labels from an input string.
+fn labels(input: &str) -> (Vec<&str>, &str) {
+    let mut labels = Vec::new();
+    let mut tail = input;
+
+    while let Some((l, t)) = label(tail) {
+        labels.push(l);
+        tail = t;
+    }
+
+    (labels, tail)
 }
 
 /// Parses an operation from an input string.
@@ -740,7 +806,7 @@ fn parse_b_args<'a>(opcode: &str, tail: &'a str) -> ParsingResult<'a, Op> {
 /// An operation is defined as a mnemonic and a sequence of arguments. The
 /// instruction name is recognized and the corresponding function is then
 /// called.
-pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
+fn op(input: &str) -> ParsingResult<RawOp> {
     let ((_, opcode, _), tail) = multiple3(input, whitespaces_opt, symbol, whitespaces)?;
 
     let opcode = opcode.to_lowercase();
@@ -779,6 +845,13 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+pub(crate) fn parse_op_and_labels(input: &str) -> ParsingResult<(Vec<&str>, RawOp)> {
+    let (labels, tail) = labels(input);
+    let (op, tail) = op(tail)?;
+
+    Ok(((labels, op), tail))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -805,328 +878,309 @@ mod tests {
     #[test]
     fn parse_op_lsls_immediate() {
         assert_eq!(
-            parse_op("lsls r4, r2, #12").unwrap().0,
-            Op::LslI(Register::R4, Register::R2, Imm5(12)),
+            op("lsls r4, r2, #12").unwrap().0,
+            RawOp::LslI(Register::R4, Register::R2, Imm5(12)),
         );
 
         assert_eq!(
-            parse_op("lsls r4, r2").unwrap().0,
-            Op::LslR(Register::R4, Register::R2),
+            op("lsls r4, r2").unwrap().0,
+            RawOp::LslR(Register::R4, Register::R2),
         );
     }
 
     #[test]
     fn parse_op_lsrs() {
         assert_eq!(
-            parse_op("lsrs r4, r2, #12").unwrap().0,
-            Op::LsrI(Register::R4, Register::R2, Imm5(12)),
+            op("lsrs r4, r2, #12").unwrap().0,
+            RawOp::LsrI(Register::R4, Register::R2, Imm5(12)),
         );
 
         assert_eq!(
-            parse_op("lsrs r4, r2").unwrap().0,
-            Op::LsrR(Register::R4, Register::R2),
+            op("lsrs r4, r2").unwrap().0,
+            RawOp::LsrR(Register::R4, Register::R2),
         );
     }
 
     #[test]
     fn parse_op_asr() {
         assert_eq!(
-            parse_op("asrs r4, r2, #12").unwrap().0,
-            Op::AsrI(Register::R4, Register::R2, Imm5(12)),
+            op("asrs r4, r2, #12").unwrap().0,
+            RawOp::AsrI(Register::R4, Register::R2, Imm5(12)),
         );
 
         assert_eq!(
-            parse_op("asrs r4, r2").unwrap().0,
-            Op::AsrR(Register::R4, Register::R2),
+            op("asrs r4, r2").unwrap().0,
+            RawOp::AsrR(Register::R4, Register::R2),
         );
     }
 
     #[test]
     fn parse_op_adds_register() {
         assert_eq!(
-            parse_op("adds r4, r2, r0").unwrap().0,
-            Op::AddR(Register::R4, Register::R2, Register::R0),
+            op("adds r4, r2, r0").unwrap().0,
+            RawOp::AddR(Register::R4, Register::R2, Register::R0),
         );
 
         assert_eq!(
-            parse_op("adds r4, r2, #6").unwrap().0,
-            Op::AddI(Register::R4, Register::R2, Imm3(6)),
+            op("adds r4, r2, #6").unwrap().0,
+            RawOp::AddI(Register::R4, Register::R2, Imm3(6)),
         );
     }
 
     #[test]
     fn parse_op_subs_register() {
         assert_eq!(
-            parse_op("subs r4, r2, r0").unwrap().0,
-            Op::SubR(Register::R4, Register::R2, Register::R0),
+            op("subs r4, r2, r0").unwrap().0,
+            RawOp::SubR(Register::R4, Register::R2, Register::R0),
         );
 
         assert_eq!(
-            parse_op("subs r4, r2, #6").unwrap().0,
-            Op::SubI(Register::R4, Register::R2, Imm3(6)),
+            op("subs r4, r2, #6").unwrap().0,
+            RawOp::SubI(Register::R4, Register::R2, Imm3(6)),
         );
     }
 
     #[test]
     fn parse_movs() {
         assert_eq!(
-            parse_op("movs r3, #99").unwrap().0,
-            Op::MovI(Register::R3, Imm8(99)),
+            op("movs r3, #99").unwrap().0,
+            RawOp::MovI(Register::R3, Imm8(99)),
         );
     }
 
     #[test]
     fn parse_ands() {
         assert_eq!(
-            parse_op("ands r3, r1").unwrap().0,
-            Op::And(Register::R3, Register::R1),
+            op("ands r3, r1").unwrap().0,
+            RawOp::And(Register::R3, Register::R1),
         );
     }
 
     #[test]
     fn parse_eors() {
         assert_eq!(
-            parse_op("eors r3, r1").unwrap().0,
-            Op::Eor(Register::R3, Register::R1),
+            op("eors r3, r1").unwrap().0,
+            RawOp::Eor(Register::R3, Register::R1),
         );
     }
 
     #[test]
     fn parse_adcs() {
         assert_eq!(
-            parse_op("adcs r4, r1").unwrap().0,
-            Op::AdcR(Register::R4, Register::R1),
+            op("adcs r4, r1").unwrap().0,
+            RawOp::AdcR(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_sbcs() {
         assert_eq!(
-            parse_op("sbcs r4, r1").unwrap().0,
-            Op::SbcR(Register::R4, Register::R1),
+            op("sbcs r4, r1").unwrap().0,
+            RawOp::SbcR(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_rors() {
         assert_eq!(
-            parse_op("rors r4, r1").unwrap().0,
-            Op::RorR(Register::R4, Register::R1),
+            op("rors r4, r1").unwrap().0,
+            RawOp::RorR(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_tsts() {
         assert_eq!(
-            parse_op("tsts r4, r1").unwrap().0,
-            Op::Tst(Register::R4, Register::R1),
+            op("tsts r4, r1").unwrap().0,
+            RawOp::Tst(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_rsbs() {
         assert_eq!(
-            parse_op("rsbs r4, r1").unwrap().0,
-            Op::Rsb(Register::R4, Register::R1),
+            op("rsbs r4, r1").unwrap().0,
+            RawOp::Rsb(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_cmps() {
         assert_eq!(
-            parse_op("cmps r4, r1").unwrap().0,
-            Op::Cmp(Register::R4, Register::R1),
+            op("cmps r4, r1").unwrap().0,
+            RawOp::Cmp(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_cmns() {
         assert_eq!(
-            parse_op("cmns r4, r1").unwrap().0,
-            Op::Cmn(Register::R4, Register::R1),
+            op("cmns r4, r1").unwrap().0,
+            RawOp::Cmn(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_orrs() {
         assert_eq!(
-            parse_op("orrs r4, r1").unwrap().0,
-            Op::Orr(Register::R4, Register::R1),
+            op("orrs r4, r1").unwrap().0,
+            RawOp::Orr(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_muls() {
         assert_eq!(
-            parse_op("muls r4, r1, r4").unwrap().0,
-            Op::Mul(Register::R4, Register::R1),
+            op("muls r4, r1, r4").unwrap().0,
+            RawOp::Mul(Register::R4, Register::R1),
         );
 
-        assert!(parse_op("muls r4, r1, r2").is_err());
+        assert!(op("muls r4, r1, r2").is_err());
     }
 
     #[test]
     fn parse_bics() {
         assert_eq!(
-            parse_op("bics r4, r1, r4").unwrap().0,
-            Op::Bic(Register::R4, Register::R1),
+            op("bics r4, r1, r4").unwrap().0,
+            RawOp::Bic(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_mvns() {
         assert_eq!(
-            parse_op("mvns r4, r1, r4").unwrap().0,
-            Op::Mvn(Register::R4, Register::R1),
+            op("mvns r4, r1, r4").unwrap().0,
+            RawOp::Mvn(Register::R4, Register::R1),
         );
     }
 
     #[test]
     fn parse_str() {
         assert_eq!(
-            parse_op("str r4, [sp, #101]").unwrap().0,
-            Op::Str(Register::R4, Imm8(101)),
+            op("str r4, [sp, #101]").unwrap().0,
+            RawOp::Str(Register::R4, Imm8(101)),
         );
 
         assert_eq!(
-            parse_op("str r4, [sp]").unwrap().0,
-            Op::Str(Register::R4, Imm8(0)),
+            op("str r4, [sp]").unwrap().0,
+            RawOp::Str(Register::R4, Imm8(0)),
         );
     }
 
     #[test]
     fn parse_ldr() {
         assert_eq!(
-            parse_op("ldr r4, [sp, #101]").unwrap().0,
-            Op::Ldr(Register::R4, Imm8(101)),
+            op("ldr r4, [sp, #101]").unwrap().0,
+            RawOp::Ldr(Register::R4, Imm8(101)),
         );
 
         assert_eq!(
-            parse_op("ldr r4, [sp]").unwrap().0,
-            Op::Ldr(Register::R4, Imm8(0)),
+            op("ldr r4, [sp]").unwrap().0,
+            RawOp::Ldr(Register::R4, Imm8(0)),
         );
     }
 
     #[test]
     fn parse_add() {
-        assert_eq!(
-            parse_op("add sp, sp, #101").unwrap().0,
-            Op::AddSp(Imm7(101)),
-        );
+        assert_eq!(op("add sp, sp, #101").unwrap().0, RawOp::AddSp(Imm7(101)),);
 
-        assert_eq!(parse_op("add sp, #101").unwrap().0, Op::AddSp(Imm7(101)),);
+        assert_eq!(op("add sp, #101").unwrap().0, RawOp::AddSp(Imm7(101)),);
     }
 
     #[test]
     fn parse_sub() {
-        assert_eq!(
-            parse_op("sub sp, sp, #101").unwrap().0,
-            Op::SubSp(Imm7(101)),
-        );
+        assert_eq!(op("sub sp, sp, #101").unwrap().0, RawOp::SubSp(Imm7(101)),);
 
-        assert_eq!(parse_op("sub sp, #101").unwrap().0, Op::SubSp(Imm7(101)),);
+        assert_eq!(op("sub sp, #101").unwrap().0, RawOp::SubSp(Imm7(101)),);
     }
 
     #[test]
     fn parse_beq() {
-        assert_eq!(
-            parse_op("beq #99").unwrap().0,
-            Op::B(Condition(0), Imm8(99)),
-        );
+        assert_eq!(op("beq foo").unwrap().0, RawOp::B(Condition(0), "foo"),);
     }
 
     #[test]
     fn parse_bne() {
-        assert_eq!(
-            parse_op("bne #101").unwrap().0,
-            Op::B(Condition(1), Imm8(101)),
-        );
+        assert_eq!(op("bne bar").unwrap().0, RawOp::B(Condition(1), "bar"),);
     }
 
     #[test]
     fn parse_bcs() {
-        assert_eq!(
-            parse_op("bcs #127").unwrap().0,
-            Op::B(Condition(2), Imm8(127)),
-        );
+        assert_eq!(op("bcs hello").unwrap().0, RawOp::B(Condition(2), "hello"),);
     }
 
     #[test]
     fn parse_bcc() {
-        assert_eq!(
-            parse_op("bcc #42").unwrap().0,
-            Op::B(Condition(3), Imm8(42)),
-        );
+        assert_eq!(op("bcc f").unwrap().0, RawOp::B(Condition(3), "f"),);
     }
 
     #[test]
     fn parse_bmi() {
-        assert_eq!(
-            parse_op("bmi #101").unwrap().0,
-            Op::B(Condition(4), Imm8(101)),
-        );
+        assert_eq!(op("bmi main").unwrap().0, RawOp::B(Condition(4), "main"),);
     }
 
     #[test]
     fn parse_bpl() {
-        assert_eq!(
-            parse_op("bpl #001").unwrap().0,
-            Op::B(Condition(5), Imm8(001)),
-        );
+        assert_eq!(op("bpl ffff").unwrap().0, RawOp::B(Condition(5), "ffff"),);
     }
 
     #[test]
     fn parse_bvs() {
-        assert_eq!(
-            parse_op("bvs #001").unwrap().0,
-            Op::B(Condition(6), Imm8(1)),
-        );
+        assert_eq!(op("bvs end").unwrap().0, RawOp::B(Condition(6), "end"),);
     }
 
     #[test]
     fn parse_bvc() {
         assert_eq!(
-            parse_op("bvc #255").unwrap().0,
-            Op::B(Condition(7), Imm8(255)),
+            op("bvc while_start").unwrap().0,
+            RawOp::B(Condition(7), "while_start"),
         );
     }
 
     #[test]
     fn parse_bhi() {
         assert_eq!(
-            parse_op("bhi #13").unwrap().0,
-            Op::B(Condition(8), Imm8(13)),
+            op("bhi .final").unwrap().0,
+            RawOp::B(Condition(8), ".final"),
         );
     }
 
     #[test]
     fn parse_bls() {
-        assert_eq!(parse_op("bls #9").unwrap().0, Op::B(Condition(9), Imm8(9)),);
+        assert_eq!(op("bls foo").unwrap().0, RawOp::B(Condition(9), "foo"),);
     }
 
     #[test]
     fn parse_bge() {
-        assert_eq!(parse_op("bge #0").unwrap().0, Op::B(Condition(10), Imm8(0)),);
+        assert_eq!(op("bge h").unwrap().0, RawOp::B(Condition(10), "h"),);
     }
 
     #[test]
     fn parse_blt() {
-        assert_eq!(
-            parse_op("blt #199").unwrap().0,
-            Op::B(Condition(11), Imm8(199)),
-        );
+        assert_eq!(op("blt p").unwrap().0, RawOp::B(Condition(11), "p"),);
     }
 
     #[test]
     fn parse_bgt() {
-        assert_eq!(
-            parse_op("bgt #201").unwrap().0,
-            Op::B(Condition(12), Imm8(201)),
-        );
+        assert_eq!(op("bgt .foo").unwrap().0, RawOp::B(Condition(12), ".foo"),);
     }
 
     #[test]
     fn parse_ble() {
-        assert_eq!(parse_op("ble #0").unwrap().0, Op::B(Condition(13), Imm8(0)),);
+        assert_eq!(
+            op("ble foobar").unwrap().0,
+            RawOp::B(Condition(13), "foobar"),
+        );
+    }
+
+    #[test]
+    fn labels_parses_multiple_labels() {
+        let (ls, tail) = labels("foo: bar: .baz :qux: tail");
+        assert_eq!(ls, ["foo", "bar", ".baz", "qux"]);
+        assert_eq!(tail, "tail");
+
+        let (ls, tail) = labels("hello, world");
+        assert!(ls.is_empty());
+        assert_eq!(tail, "hello, world");
     }
 }

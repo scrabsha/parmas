@@ -8,6 +8,11 @@ use crate::encoder::{
     Succ6, Succ7, Succ8,
 };
 
+use crate::{labels::LabelTable, Result};
+
+pub(crate) type RawOp<'a> = Op<&'a str>;
+pub(crate) type ResolvedOp = Op<Imm8>;
+
 // The shift, add, sub, mov opcodes header.
 /// Represents the Shift, Add, Sub, Mov instruction header.
 ///
@@ -82,7 +87,7 @@ impl<T: AddBit> Encodable<T> for BHeader {
     type Output = Succ4<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
-        instruct.then(true).then(false).then(false).then(true)
+        instruct.then(true).then(true).then(false).then(true)
     }
 }
 
@@ -95,7 +100,7 @@ impl<T: AddBit> Encodable<T> for BHeader {
 /// module. It can then encoded to a 16-bit value using the `Encodable` trait
 /// and the `encode` method.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Op {
+pub(crate) enum Op<T> {
     // Shift, add, sub, mov, section 10.1.1.
     /// LSL (immediate).
     LslI(Register, Register, Imm5),
@@ -162,18 +167,53 @@ pub(crate) enum Op {
 
     // Branch, section 10.1.6.
     /// B (conditionnal branch).
-    B(Condition, Imm8),
+    B(Condition, T),
 }
 
-impl Op {
-    /// Creates an `EncodedInstruction` from the current instruction.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let v = Op::LslI(Register::R3, Register::R1, Imm5(20));
-    /// assert_eq!(v.encode(), EncodedInstruction(Ox050b));
-    /// ```
+impl<'a> RawOp<'a> {
+    pub(crate) fn resolve_labels(self, pos: usize, ls: &LabelTable) -> Result<ResolvedOp> {
+        let translated = match self {
+            Op::LslI(a, b, c) => Op::LslI(a, b, c),
+            Op::LsrI(a, b, c) => Op::LsrI(a, b, c),
+            Op::AsrI(a, b, c) => Op::AsrI(a, b, c),
+            Op::AddR(a, b, c) => Op::AddR(a, b, c),
+            Op::SubR(a, b, c) => Op::SubR(a, b, c),
+            Op::AddI(a, b, c) => Op::AddI(a, b, c),
+            Op::SubI(a, b, c) => Op::SubI(a, b, c),
+            Op::MovI(a, b) => Op::MovI(a, b),
+            Op::And(a, b) => Op::And(a, b),
+            Op::Eor(a, b) => Op::Eor(a, b),
+            Op::LslR(a, b) => Op::LslR(a, b),
+            Op::LsrR(a, b) => Op::LsrR(a, b),
+            Op::AsrR(a, b) => Op::AsrR(a, b),
+            Op::AdcR(a, b) => Op::AdcR(a, b),
+            Op::SbcR(a, b) => Op::SbcR(a, b),
+            Op::RorR(a, b) => Op::RorR(a, b),
+            Op::Tst(a, b) => Op::Tst(a, b),
+            Op::Rsb(a, b) => Op::Rsb(a, b),
+            Op::Cmp(a, b) => Op::Cmp(a, b),
+            Op::Cmn(a, b) => Op::Cmn(a, b),
+            Op::Orr(a, b) => Op::Orr(a, b),
+            Op::Mul(a, b) => Op::Mul(a, b),
+            Op::Bic(a, b) => Op::Bic(a, b),
+            Op::Mvn(a, b) => Op::Mvn(a, b),
+            Op::Str(a, b) => Op::Str(a, b),
+            Op::Ldr(a, b) => Op::Ldr(a, b),
+            Op::AddSp(a) => Op::AddSp(a),
+            Op::SubSp(a) => Op::SubSp(a),
+            Op::B(a, label) => {
+                let from = pos;
+                let to = ls.resolve(label)?;
+                let delta = compute_branching_delta(from, to)?;
+                Op::B(a, delta)
+            }
+        };
+
+        Ok(translated)
+    }
+}
+
+impl ResolvedOp {
     pub(crate) fn encode(&self) -> EncodedInstruction {
         InstructionEncoder::new()
             .then(self)
@@ -181,7 +221,46 @@ impl Op {
     }
 }
 
-impl<T: AddBit> Encodable<T> for &Op {
+/// Returns how much bytes should be jumped to, returns an error if the
+/// branching is impossible.
+fn compute_branching_delta(from: usize, to: usize) -> Result<Imm8> {
+    let (from, to) = (from as isize, to as isize);
+
+    // Warning: this is not conform to what is stated by the school-provided
+    // specs, which states that the offset should be incremented by 3.
+    //
+    // However, the following program:
+    //
+    //     beq foo
+    //     beq foo
+    //     beq foo
+    //     beq foo
+    // foo:
+    //
+    // Is assembled as:
+    //
+    // d002
+    // d001
+    // d000
+    // d0ff
+    //
+    // Which requires us to always substract 2.
+    let delta = to - from - 2;
+
+    if delta.abs() > 127 {
+        Err("Illegal branch offset")
+    } else {
+        let delta = if delta >= 0 {
+            delta as usize
+        } else {
+            0usize.wrapping_sub((-delta) as usize)
+        };
+
+        Ok(Imm8(delta))
+    }
+}
+
+impl<'a, T: AddBit> Encodable<T> for &'a ResolvedOp {
     type Output = Succ10<T>;
 
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
@@ -587,10 +666,10 @@ mod tests {
     }
 
     tests! {
-        sub_sp_12_encoding :: Op::SubSp(Imm7(12)) => 0xb08c,
-        movs_r0_0_encoding :: Op::MovI(Register::R0, Imm8(0)) => 0x2000,
-        str_r0_sp_8_encoding :: Op::Str(Register::R0, Imm8(8)) => 0x9008,
-        movs_r1_1 :: Op::MovI(Register::R1, Imm8(1)) => 0x2101,
-        str_r1_sp_4_encoding :: Op::Str(Register::R1, Imm8(4)) => 0x9104,
+        sub_sp_12_encoding :: ResolvedOp::SubSp(Imm7(12)) => 0xb08c,
+        movs_r0_0_encoding :: ResolvedOp::MovI(Register::R0, Imm8(0)) => 0x2000,
+        str_r0_sp_8_encoding :: ResolvedOp::Str(Register::R0, Imm8(8)) => 0x9008,
+        movs_r1_1 :: ResolvedOp::MovI(Register::R1, Imm8(1)) => 0x2101,
+        str_r1_sp_4_encoding :: ResolvedOp::Str(Register::R1, Imm8(4)) => 0x9104,
     }
 }

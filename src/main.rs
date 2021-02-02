@@ -20,6 +20,7 @@ use std::path::PathBuf;
 
 mod driver;
 mod encoder;
+mod labels;
 mod op;
 mod parser;
 
@@ -77,7 +78,7 @@ fn output_file() -> Option<Result<File>> {
 
 /// The program entry point.
 fn main() -> Result<()> {
-    let input = input_file().transpose()?;
-    let output = output_file().transpose()?;
-    Assembler::run(input, output)
+    let mut input = input_file().transpose()?;
+    let mut output = output_file().transpose()?;
+    Assembler::run(input.as_mut(), output.as_mut())
 }
