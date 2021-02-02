@@ -473,7 +473,7 @@ fn branch_condition(input: &str) -> Result<Condition> {
         "blt" => Ok(Condition(11)),
         "bgt" => Ok(Condition(12)),
         "ble" => Ok(Condition(13)),
-        "bal" => Ok(Condition(14)),
+        "b" => Ok(Condition(14)),
         _ => Err("Unknown branching instruction"),
     }
 }
@@ -825,7 +825,7 @@ fn op(input: &str) -> ParsingResult<RawOp> {
         "rors" => parse_rors_args(tail),
         "tsts" => parse_tsts_args(tail),
         "rsbs" => parse_rsbs_args(tail),
-        "cmps" => parse_cmps_args(tail),
+        "cmp" => parse_cmps_args(tail),
         "cmns" => parse_cmns_args(tail),
         "orrs" => parse_orrs_args(tail),
         "muls" => parse_muls_args(tail),
@@ -1007,7 +1007,7 @@ mod tests {
     #[test]
     fn parse_cmps() {
         assert_eq!(
-            op("cmps r4, r1").unwrap().0,
+            op("cmp r4, r1").unwrap().0,
             RawOp::Cmp(Register::R4, Register::R1),
         );
     }

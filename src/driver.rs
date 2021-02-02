@@ -187,7 +187,7 @@ mod tests {
         let input = "foo: beq foo";
 
         let output = Assembler::run_test(input).unwrap();
-        let expected_output = "v2.0 raw\nd0fe ";
+        let expected_output = "v2.0 raw\nd0fd ";
 
         assert_eq!(output, expected_output);
     }
@@ -201,8 +201,101 @@ mod tests {
         ";
 
         let output = Assembler::run_test(input).unwrap();
-        let expected_output = "v2.0 raw\nd0ff 1849 ";
+        let expected_output = "v2.0 raw\nd0fe 1849 ";
 
         assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn multiple_branches() {
+        let input = "
+            b foo
+            b foo
+            b foo
+            b foo
+        foo:
+            b foo
+        ";
+
+        let output = Assembler::run_test(input).unwrap();
+        let expected_output = "v2.0 raw\nde01 de00 deff defe defd ";
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn calculator_example() {
+        let input = "
+        main:
+            sub	sp, #24
+            movs	r0, #0
+            str	r0, [sp, #20]
+            str	r0, [sp, #16]
+            str	r0, [sp, #12]
+            movs	r0, #1
+            str	r0, [sp, #8]
+            movs	r0, #2
+            str	r0, [sp, #4]
+            movs	r0, #3
+            str	r0, [sp]
+            b	.LBB0_1
+        .LBB0_1:
+            ldr	r0, [sp, #32]
+            ldr	r1, [sp, #12]
+            cmp	r0, r1
+            bne	.LBB0_3
+            b	.LBB0_2
+        .LBB0_2:
+            ldr	r0, [sp, #24]
+            ldr	r1, [sp, #28]
+            adds	r0, r0, r1
+            str	r0, [sp, #40]
+            b	.LBB0_3
+        .LBB0_3:
+            ldr	r0, [sp, #32]
+            ldr	r1, [sp, #8]
+            cmp	r0, r1
+            bne	.LBB0_5
+            b	.LBB0_4
+        .LBB0_4:
+            ldr	r0, [sp, #24]
+            ldr	r1, [sp, #28]
+            subs	r0, r0, r1
+            str	r0, [sp, #40]
+            b	.LBB0_5
+        .LBB0_5:
+            ldr	r0, [sp, #32]
+            ldr	r1, [sp, #4]
+            cmp	r0, r1
+            bne	.LBB0_7
+            b	.LBB0_6
+        .LBB0_6:
+            ldr	r0, [sp, #24]
+            ldr	r1, [sp, #28]
+            muls	r1, r0, r1
+            str	r1, [sp, #40]
+            b	.LBB0_7
+        .LBB0_7:
+            ldr	r0, [sp, #32]
+            ldr	r1, [sp]
+            cmp	r0, r1
+            bne	.LBB0_9
+            b	.LBB0_8
+        .LBB0_8:
+            ldr	r0, [sp, #24]
+            ldr	r1, [sp, #28]
+            lsls	r0, r1
+            str	r0, [sp, #40]
+            b	.LBB0_9
+        .LBB0_9:
+            b	.LBB0_1
+        ";
+
+        let output = Assembler::run_test(input).unwrap();
+        let expected_outptut = "v2.0 raw\nb098 2000 9014 9010 900c 2001 9008 \
+        2002 9004 2003 9000 defe 9820 990c 4288 d104 defe 9818 991c 1840 9028 \
+        defe 9820 9908 4288 d104 defe 9818 991c 1a40 9028 defe 9820 9904 4288 \
+        d104 defe 9818 991c 4341 9128 defe 9820 9900 4288 d104 defe 9818 991c \
+        4088 9028 defe ded5 ";
+        assert_eq!(output, expected_outptut);
     }
 }
