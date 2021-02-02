@@ -9,28 +9,28 @@ First, install the `rustup` tool for your operating system (see
 `stable` rust toolchain:
 
 ```bash
-$ rustup install stable
+rustup install stable
 ```
 
 Then, clone the repository and `cd` to it:
 
 ```bash
-$ git clone https://github.com/leopourcelot/parmas
-$ cargo build --release
+git clone https://github.com/scrabsha/parmas
+cargo build --release
 ```
 
 The executable is located in the `target` subdirectory. On Linux, it can be
-installed with :
+installed with (requires root) :
 
-```bash
-# install target/release/parmas /usr/bin/parmas
+```
+install target/release/parmas /usr/bin/parmas
 ```
 
 ## Running parmas
 
 To run `parmas` on an assembly file, issue:
 
-```bash
+```
 parmas path/to/file.s
 ```
 
@@ -43,8 +43,8 @@ processed, and the result will be printed to the standard output.
 This project use the rust built-in testing framework. To run the test suite,
 issue:
 
-```bash
-$ cargo test
+```
+cargo test
 ```
 
 ## Instrunction table
