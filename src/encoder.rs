@@ -25,7 +25,7 @@ pub(crate) trait AddBit {
 
     fn add_bit(bit: bool, instr: u16) -> u16 {
         let or_val = if bit {
-            1 << Self::OFFSET
+            1 << 15 - Self::OFFSET
         } else {
             0
         };
