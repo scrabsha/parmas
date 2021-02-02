@@ -547,6 +547,18 @@ fn parse_orrs_args(input: &str) -> ParsingResult<Op> {
     Ok((op, tail))
 }
 
+/// Parses the arguments following an MULS instruction.
+fn parse_muls_args(input: &str) -> ParsingResult<Op> {
+    let ((rdm, rn, rdm2), tail) = args3(input, register, register, register)?;
+
+    if rdm != rdm2 {
+        return Err("Wrong repeated register");
+    }
+
+    let op = Op::Mul(rdm, rn);
+    Ok((op, tail))
+}
+
 /// Parses an operation from an input string.
 ///
 /// An operation is defined as a mnemonic and a sequence of arguments. The
@@ -574,6 +586,7 @@ pub(crate) fn parse_op(input: &str) -> ParsingResult<Op> {
         "cmps" => parse_cmps_args(tail),
         "cmns" => parse_cmns_args(tail),
         "orrs" => parse_orrs_args(tail),
+        "muls" => parse_muls_args(tail),
         _ => todo!(),
     }?;
 
@@ -756,5 +769,15 @@ mod tests {
             parse_op("orrs r4, r1").unwrap().0,
             Op::Orr(Register::R4, Register::R1),
         );
+    }
+
+    #[test]
+    fn parse_muls() {
+        assert_eq!(
+            parse_op("muls r4, r1, r4").unwrap().0,
+            Op::Mul(Register::R4, Register::R1),
+        );
+
+        assert!(parse_op("muls r4, r1, r2").is_err());
     }
 }

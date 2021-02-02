@@ -102,7 +102,7 @@ pub enum Op {
     /// ORR (register).
     Orr(Register, Register),
     /// MUL.
-    Mul(Register, Register, Register),
+    Mul(Register, Register),
     /// BIC (register).
     Bic(Register, Register),
     /// MVN (register).
@@ -281,6 +281,12 @@ impl<T: AddBit> Encodable<T> for &Op {
                 .then(DpHeader)
                 .then((true, true, false, false))
                 .then(*rm)
+                .then(*rdn),
+
+            Op::Mul(rdn, rn) => instruct
+                .then(DpHeader)
+                .then((true, true, false, true))
+                .then(*rn)
                 .then(*rdn),
 
             _ => todo!(),
