@@ -4,8 +4,8 @@
 //! also implements the encoding of all these types.
 
 use crate::encoder::{
-    AddBit, Encodable, EncodedInstruction, InstructionEncoder, Succ10, Succ2, Succ3, Succ4, Succ5, Succ7,
-    Succ6, Succ8,
+    AddBit, Encodable, EncodedInstruction, InstructionEncoder, Succ10, Succ2, Succ3, Succ4, Succ5,
+    Succ6, Succ7, Succ8,
 };
 
 // The shift, add, sub, mov opcodes header.
@@ -333,12 +333,12 @@ impl<T: AddBit> Encodable<T> for &Op {
 
             Op::AddSp(imm7) => instruct
                 .then(MHeader)
-                .then((false,false, false, false, false))
+                .then((false, false, false, false, false))
                 .then(*imm7),
 
             Op::SubSp(imm7) => instruct
                 .then(MHeader)
-                .then((false,false, false, false, true))
+                .then((false, false, false, false, true))
                 .then(*imm7),
 
             _ => todo!(),
@@ -462,17 +462,13 @@ impl<T: AddBit> Encodable<T> for Imm7 {
     fn encode(self, instruct: InstructionEncoder<T>) -> InstructionEncoder<Self::Output> {
         let v = self.0;
         let (hi, lo) = (
-            (
-                v & 0b1000000 != 0,
-                v & 0b0100000 != 0,
-                v & 0b0010000 != 0,
-            ),
+            (v & 0b1000000 != 0, v & 0b0100000 != 0, v & 0b0010000 != 0),
             (
                 v & 0b0001000 != 0,
                 v & 0b0000100 != 0,
                 v & 0b0000010 != 0,
                 v & 0b0000001 != 0,
-            )
+            ),
         );
 
         instruct.then(hi).then(lo)
