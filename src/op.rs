@@ -8,8 +8,8 @@ pub enum Op {
     AsrI(Register, Register, Imm5),
     AddR(Register, Register, Register),
     SubR(Register, Register, Register),
-    AddI(Register, Register, Imm5),
-    SubI(Register, Register, Imm5),
+    AddI(Register, Register, Imm3),
+    SubI(Register, Register, Imm3),
     MovI(Register, Imm8),
 
     // Data processing, section 10.1.2.
@@ -142,6 +142,10 @@ pub struct Imm8(pub usize);
 // Must be < 128
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Imm7(pub usize);
+
+// Must be < 8
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Imm3(pub usize);
 
 // Must be < 15
 #[derive(Clone, Copy, Debug, PartialEq)]
